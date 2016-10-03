@@ -41,6 +41,17 @@ glm::vec3 calculateRandomDirectionInHemisphere(
         + sin(around) * over * perpendicularDirection2;
 }
 
+
+__device__ void lambertianBrdf(
+	const glm::vec3& wo, // exit direction
+	glm::vec3& wi, // incident direction. This is computed by the BRDF function
+	const glm::vec3 normal,
+	float& reflectance
+	) {
+
+
+}
+
 /**
  * Scatter a ray with some probabilities according to the material properties.
  * For example, a diffuse surface scatters in a cosine-weighted hemisphere.
@@ -76,4 +87,22 @@ void scatterRay(
     // TODO: implement this.
     // A basic implementation of pure-diffuse shading will just call the
     // calculateRandomDirectionInHemisphere defined above.
+	
+	glm::vec3 scatteredRayDirection;
+	if (m.hasReflective) {
+		scatteredRayDirection = glm::reflect(pathSegment.ray.direction, normal);
+		pathSegment.color *= m.specular.color;
+	}
+	else if (m.hasRefractive) {
+		scatteredRayDirection = glm::refract(pathSegment.ray.direction, normal, m.indexOfRefraction);
+
+	} else {
+		// Diffuse case
+		scatteredRayDirection = calculateRandomDirectionInHemisphere(normal, rng);
+	}
+
+	pathSegment.color *= glm::abs(glm::dot(scatteredRayDirection, normal)) * m.color;
+	pathSegment.ray.direction = scatteredRayDirection;
+	pathSegment.ray.origin = intersect + EPSILON * scatteredRayDirection;
+
 }

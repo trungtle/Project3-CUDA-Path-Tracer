@@ -64,6 +64,8 @@ struct PathSegment {
 	glm::vec3 color;
 	int pixelIndex;
 	int remainingBounces;
+	bool shouldTerminate;
+	int time; // For motion blur
 };
 
 // Use with a corresponding PathSegment to do:
@@ -73,4 +75,5 @@ struct ShadeableIntersection {
   float t;
   glm::vec3 surfaceNormal;
   int materialId;
+  glm::vec3 intersect_point;
 };
