@@ -41,16 +41,17 @@ glm::vec3 calculateRandomDirectionInHemisphere(
         + sin(around) * over * perpendicularDirection2;
 }
 
-
-__device__ void lambertianBrdf(
-	const glm::vec3& wo, // exit direction
-	glm::vec3& wi, // incident direction. This is computed by the BRDF function
-	const glm::vec3 normal,
-	float& reflectance
-	) {
-
-
+__device__ void SpecularTransmissionSample(
+	const glm::vec3& wo,
+	glm::vec3& wi,
+	float u1,
+	float u2,
+	float *pdf
+	) 
+{
+	*pdf = 1.0f;
 }
+
 
 /**
  * Scatter a ray with some probabilities according to the material properties.
@@ -92,16 +93,32 @@ void scatterRay(
 	if (m.hasReflective) {
 		scatteredRayDirection = glm::reflect(pathSegment.ray.direction, normal);
 		pathSegment.color *= m.specular.color;
+		pathSegment.color *= glm::abs(glm::dot(scatteredRayDirection, normal)) * m.color;
 	}
 	else if (m.hasRefractive) {
-		scatteredRayDirection = glm::refract(pathSegment.ray.direction, normal, m.indexOfRefraction);
+		float ei = 1.0f;
+		float et = m.indexOfRefraction;
+		bool entering = glm::dot(pathSegment.ray.direction, normal) < 0;
+		if (!entering) {
+			float t = ei;
+			ei = et;
+			et = t;
+		} 
+
+		float eta = ei / et;
+		float w = glm::acos(glm::dot(pathSegment.ray.direction, normal));
+		float criticalAngle = glm::asin(eta);
+		if (w > criticalAngle) {
+			scatteredRayDirection = glm::refract(-pathSegment.ray.direction, normal, eta);
+		}
+
 
 	} else {
 		// Diffuse case
 		scatteredRayDirection = calculateRandomDirectionInHemisphere(normal, rng);
+		pathSegment.color *= glm::abs(glm::dot(scatteredRayDirection, normal)) * m.color;
 	}
 
-	pathSegment.color *= glm::abs(glm::dot(scatteredRayDirection, normal)) * m.color;
 	pathSegment.ray.direction = scatteredRayDirection;
 	pathSegment.ray.origin = intersect + EPSILON * scatteredRayDirection;
 
