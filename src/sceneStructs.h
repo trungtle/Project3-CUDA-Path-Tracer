@@ -49,6 +49,7 @@ struct Camera {
     glm::vec3 right;
     glm::vec2 fov;
     glm::vec2 pixelLength;
+	int samplesPerPixel;
 };
 
 struct RenderState {
@@ -77,3 +78,4 @@ struct ShadeableIntersection {
   int materialId;
   glm::vec3 intersect_point;
 };
+

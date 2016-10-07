@@ -82,11 +82,50 @@ __host__ __device__ float boxIntersectionTest(Geom box, Ray r,
             tmin_n = tmax_n;
             outside = false;
         }
-        intersectionPoint = multiplyMV(box.transform, glm::vec4(getPointOnRay(q, tmin), 1.0f));
-        normal = glm::normalize(multiplyMV(box.transform, glm::vec4(tmin_n, 0.0f)));
-        return glm::length(r.origin - intersectionPoint);
+		intersectionPoint = multiplyMV(box.transform, glm::vec4(getPointOnRay(q, tmin), 1.0f));
+		normal = glm::normalize(multiplyMV(box.transform, glm::vec4(tmin_n, 0.0f)));
+		return glm::length(r.origin - intersectionPoint);
     }
     return -1;
+}
+
+/**
+* Test intersection between a ray and a transformed bounding box. Untransformed,
+* the bounding box ranges from -0.5 to 0.5 in each axis and is centered at the origin.
+* @todo: can rewrite this to only use min/max and not even transformation matrix
+* 
+* @return true if the ray overlaps this bounding box
+*/
+__host__ __device__ bool bboxIntersectionTest(Geom box, Ray r) {
+	Ray q;
+	q.origin = multiplyMV(box.inverseTransform, glm::vec4(r.origin, 1.0f));
+	q.direction = glm::normalize(multiplyMV(box.inverseTransform, glm::vec4(r.direction, 0.0f)));
+
+	bool outside = true;
+	float tmin = -1e38f;
+	float tmax = 1e38f;
+	for (int xyz = 0; xyz < 3; ++xyz) {
+		float qdxyz = q.direction[xyz];
+		/*if (glm::abs(qdxyz) > 0.00001f)*/ {
+			float t1 = (-0.5f - q.origin[xyz]) / qdxyz;
+			float t2 = (+0.5f - q.origin[xyz]) / qdxyz;
+			float ta = glm::min(t1, t2);
+			float tb = glm::max(t1, t2);
+			glm::vec3 n;
+			n[xyz] = t2 < t1 ? +1 : -1;
+			if (ta > 0 && ta > tmin) {
+				tmin = ta;
+			}
+			if (tb < tmax) {
+				tmax = tb;
+			}
+		}
+	}
+
+	if (tmax >= tmin && tmax > 0 && tmin <= 0) {
+		outside = false;
+	}
+	return outside;
 }
 
 // CHECKITOUT
@@ -142,3 +181,4 @@ __host__ __device__ float sphereIntersectionTest(Geom sphere, Ray r,
 
     return glm::length(r.origin - intersectionPoint);
 }
+

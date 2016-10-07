@@ -96,23 +96,30 @@ int Scene::loadCamera() {
     float fovy;
 
     //load static properties
-    for (int i = 0; i < 5; i++) {
-        string line;
-        utilityCore::safeGetline(fp_in, line);
-        vector<string> tokens = utilityCore::tokenizeString(line);
-        if (strcmp(tokens[0].c_str(), "RES") == 0) {
-            camera.resolution.x = atoi(tokens[1].c_str());
-            camera.resolution.y = atoi(tokens[2].c_str());
-        } else if (strcmp(tokens[0].c_str(), "FOVY") == 0) {
-            fovy = atof(tokens[1].c_str());
-        } else if (strcmp(tokens[0].c_str(), "ITERATIONS") == 0) {
-            state.iterations = atoi(tokens[1].c_str());
-        } else if (strcmp(tokens[0].c_str(), "DEPTH") == 0) {
-            state.traceDepth = atoi(tokens[1].c_str());
-        } else if (strcmp(tokens[0].c_str(), "FILE") == 0) {
-            state.imageName = tokens[1];
-        }
-    }
+	for (int i = 0; i < 6; i++) {
+		string line;
+		utilityCore::safeGetline(fp_in, line);
+		vector<string> tokens = utilityCore::tokenizeString(line);
+		if (strcmp(tokens[0].c_str(), "RES") == 0) {
+			camera.resolution.x = atoi(tokens[1].c_str());
+			camera.resolution.y = atoi(tokens[2].c_str());
+		}
+		else if (strcmp(tokens[0].c_str(), "FOVY") == 0) {
+			fovy = atof(tokens[1].c_str());
+		}
+		else if (strcmp(tokens[0].c_str(), "ITERATIONS") == 0) {
+			state.iterations = atoi(tokens[1].c_str());
+		}
+		else if (strcmp(tokens[0].c_str(), "DEPTH") == 0) {
+			state.traceDepth = atoi(tokens[1].c_str());
+		}
+		else if (strcmp(tokens[0].c_str(), "FILE") == 0) {
+			state.imageName = tokens[1];
+		}
+		else if (strcmp(tokens[0].c_str(), "SPP") == 0) {
+			camera.samplesPerPixel = atoi(tokens[1].c_str());
+		}
+	}
 
     string line;
     utilityCore::safeGetline(fp_in, line);
@@ -148,6 +155,23 @@ int Scene::loadCamera() {
 
     cout << "Loaded camera!" << endl;
     return 1;
+}
+
+int Scene::initBVH() {
+
+	root = new BVHNode();
+
+	// Construct leaves
+	std::vector<BVHNode*> leaves;
+	for (auto& geom : geoms) {
+		BVHNode* newNode = new BVHNode(
+			true,
+			&geom
+			);
+
+	}
+
+	return 1;
 }
 
 int Scene::loadMaterial(string materialid) {

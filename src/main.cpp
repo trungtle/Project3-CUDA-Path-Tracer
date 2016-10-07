@@ -1,6 +1,8 @@
 #include "main.h"
 #include "preview.h"
 #include <cstring>
+#include <glm/gtc/matrix_inverse.hpp>
+#include <glm/gtc/random.hpp>
 
 static std::string startTimeString;
 
@@ -127,7 +129,21 @@ void runCuda() {
         pathtraceInit(scene);
     }
 
-    if (iteration < renderState->iterations) {
+	//bool toggle = true;
+	//for (Geom& geo : scene->geoms) {
+	//	if (geo.type == GeomType::SPHERE) {
+	//		toggle = !toggle;
+	//		geo.transform = utilityCore::buildTransformationMatrix(
+	//			geo.translation + glm::vec3(false ? glm::sin(iteration * 10.0) * 1.5 : 0.0f, toggle ? 0.0f : glm::sin(iteration * 10.0) * 2.0, toggle ? 0.f : glm::sin(iteration * 10.0) * 3.5),
+	//			glm::vec3(glm::rotate((float)iteration * 10, glm::vec3(1.0, 1.0f, 0)) * glm::vec4(geo.rotation, 1.0f)),
+	//			geo.scale);
+	//		geo.inverseTransform = glm::inverse(geo.transform);
+	//		geo.invTranspose = glm::inverseTranspose(geo.transform);
+	//	}
+	//}
+	//updateGeom(scene);
+
+	if (iteration < renderState->iterations) {
         uchar4 *pbo_dptr = NULL;
         iteration++;
         cudaGLMapBufferObject((void**)&pbo_dptr, pbo);

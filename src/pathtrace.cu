@@ -4,6 +4,7 @@
 #include <thrust/execution_policy.h>
 #include <thrust/random.h>
 #include <thrust/remove.h>
+#include <thrust/device_vector.h>
 
 #include "sceneStructs.h"
 #include "scene.h"
@@ -80,11 +81,12 @@ void pathtraceInit(Scene *scene) {
     hst_scene = scene;
     const Camera &cam = hst_scene->state.camera;
     const int pixelcount = cam.resolution.x * cam.resolution.y;
+	const int samplesPerPixel = cam.samplesPerPixel;
 
     cudaMalloc(&dev_image, pixelcount * sizeof(glm::vec3));
     cudaMemset(dev_image, 0, pixelcount * sizeof(glm::vec3));
 
-  	cudaMalloc(&dev_paths, pixelcount * sizeof(PathSegment));
+  	cudaMalloc(&dev_paths, pixelcount * samplesPerPixel * sizeof(PathSegment));
 
   	cudaMalloc(&dev_geoms, scene->geoms.size() * sizeof(Geom));
   	cudaMemcpy(dev_geoms, scene->geoms.data(), scene->geoms.size() * sizeof(Geom), cudaMemcpyHostToDevice);
@@ -98,6 +100,10 @@ void pathtraceInit(Scene *scene) {
     // TODO: initialize any extra device memeory you need
 
     checkCUDAError("pathtraceInit");
+}
+
+void updateGeom(Scene *scene) {
+	cudaMemcpy(dev_geoms, scene->geoms.data(), scene->geoms.size() * sizeof(Geom), cudaMemcpyHostToDevice);
 }
 
 void pathtraceFree() {
@@ -119,26 +125,222 @@ void pathtraceFree() {
 * motion blur - jitter rays "in time"
 * lens effect - jitter ray origin positions based on a lens
 */
-__global__ void generateRayFromCamera(Camera cam, int iter, int traceDepth, PathSegment* pathSegments)
+__global__ void generateRayFromCamera(
+	Camera cam
+	, int iter
+	, int traceDepth
+	, PathSegment* pathSegments
+	)
 {
 	int x = (blockIdx.x * blockDim.x) + threadIdx.x;
 	int y = (blockIdx.y * blockDim.y) + threadIdx.y;
 
 	if (x < cam.resolution.x && y < cam.resolution.y) {
-		int index = x + (y * cam.resolution.x);
-		PathSegment & segment = pathSegments[index];
+		for (int i = 0; i < cam.samplesPerPixel; ++i) {
+			int index = i + (x * cam.samplesPerPixel) + (y * cam.resolution.x);
+			PathSegment & segment = pathSegments[index];
 
-		segment.ray.origin = cam.position;
-    segment.color = glm::vec3(1.0f, 1.0f, 1.0f);
+			segment.ray.origin = cam.position;
+			segment.color = glm::vec3(1.0f, 1.0f, 1.0f);
 
-		// TODO: implement antialiasing by jittering the ray
-		segment.ray.direction = glm::normalize(cam.view
-			- cam.right * cam.pixelLength.x * ((float)x - (float)cam.resolution.x * 0.5f)
-			- cam.up * cam.pixelLength.y * ((float)y - (float)cam.resolution.y * 0.5f)
-			);
+			// TODO: implement antialiasing by jittering the ray
+			thrust::default_random_engine rng = makeSeededRandomEngine(iter, index, 0);
+			thrust::uniform_real_distribution<float> u01(0, 1);
 
-		segment.pixelIndex = index;
-		segment.remainingBounces = traceDepth;
+			segment.ray.direction = glm::normalize(cam.view
+				- cam.right * cam.pixelLength.x * ((float)x - (float)cam.resolution.x * 0.5f )
+				- cam.up * cam.pixelLength.y * ((float)y - (float)cam.resolution.y * 0.5f)
+				);
+
+			segment.pixelIndex = x + (y * cam.resolution.x);
+			segment.remainingBounces = traceDepth;
+		}
+	}
+}
+
+__device__ float computeIntersection(
+	const PathSegment& pathSegment
+	, const Geom& geom
+	, glm::vec3& intersect_point
+	, glm::vec3& normal
+	) {
+	float t = -1;
+	bool outside = true;
+
+	if (geom.type == CUBE)
+	{
+		t = boxIntersectionTest(geom, pathSegment.ray, intersect_point, normal, outside);
+	}
+	else if (geom.type == SPHERE)
+	{
+		t = sphereIntersectionTest(geom, pathSegment.ray, intersect_point, normal, outside);
+	}
+
+	return t;
+}
+
+/*
+* Iterative stack-less BVH traversal using state logic and pointers to nodes.
+* \ref https://graphics.cg.uni-saarland.de/fileadmin/cguds/papers/2011/hapala_sccg2011/hapala_sccg2011.pdf
+*/
+__global__ void traverseBVH(
+	int depth
+	, int num_paths
+	, PathSegment * pathSegments
+	, BVHNode* root
+	, int geoms_size
+	, ShadeableIntersection * intersections
+	)
+{
+	int path_index = blockIdx.x * blockDim.x + threadIdx.x;
+
+	if (path_index < num_paths)
+	{
+
+		PathSegment pathSegment = pathSegments[path_index];
+		float t;
+		glm::vec3 intersect_point;
+		glm::vec3 normal;
+		float t_min = FLT_MAX;
+
+		glm::vec3 tmp_intersect;
+		glm::vec3 tmp_normal;
+		Geom* hit_geom = nullptr;
+
+		BVHNode* current = root->nearChild;
+		EBVHTransition transition = EBVHTransition::FromParent;
+
+		bool isIterating = true;
+		while (isIterating) {
+			// States (reproduced here from Stack-less BVH Traversal paper [Hapala1 el at. 2011])
+			// Link: https://graphics.cg.uni-saarland.de/fileadmin/cguds/papers/2011/hapala_sccg2011/hapala_sccg2011.pdf
+			switch (transition) {
+
+				// 1. From child
+				// In the fromChild case the current node was already tested when going
+				// down, and does not have to be re - tested.The next node to traverse
+				// is either current’s sibling f arChild(if current is nearChild),
+				// or its parent(if current was farChild).
+				//
+			case EBVHTransition::FromChild:
+				if (current == root) {
+					// Current has reached root
+					isIterating = false;
+				}
+				else if (current == current->parent->nearChild) {
+					// Current is near child, so transition to far child
+					current = current->parent->farChild;
+					transition = EBVHTransition::FromSibling;
+				}
+				else {
+					// Current is far child
+					current = current->parent;
+					transition = EBVHTransition::FromChild;
+				}
+				break;
+
+				// 2. From sibling
+				// In the fromSibling case, we know that we are entering farChild (it
+				// cannot be reached in any other way), and that we are traversing this
+				// node for the first time(i.e.a box test has to be done).If the node
+				// is missed, we back - track to its parent; otherwise, the current node
+				// has to be processed : if it is a leaf node, we intersect its primitives
+				// against the ray, and proceed to parent. Otherwise(i.e. if the node
+				// was hit but is not a leaf), we enter current’s subtree by performing
+				// a fromParent step to current’s first child.
+
+			case EBVHTransition::FromSibling:
+
+				if (current->isLeaf) {
+					// compute intersection and save into a list;
+					
+					t = computeIntersection(pathSegment, *current->geom, tmp_intersect, tmp_normal);
+					// Compute the minimum t from the intersection tests to determine what
+					// scene geometry object was hit first.
+					if (t > 0.0f && t_min > t)
+					{
+						t_min = t;
+						intersect_point = tmp_intersect;
+						normal = tmp_normal;
+						hit_geom = current->geom;
+					}
+
+					current = current->parent;
+					transition = EBVHTransition::FromChild;
+				}
+				else {
+					// When this isn't a leaf node, geom stores the bbox transformation
+					bool isOutside = bboxIntersectionTest(*current->geom, pathSegments[path_index].ray);
+					if (isOutside) {
+						// Missed, go back up to parent
+						current = current->parent;
+						transition = EBVHTransition::FromChild;
+					}
+					else {
+						// Hit, enter its subtree
+						current = current->nearChild;
+						transition = EBVHTransition::FromParent;
+					}
+				}
+				break;
+
+				// 3. From parent
+				// Finally, in the fromParent case, we know that we are entering
+				// nearChild and we do exactly the same as in the previous case,
+				// except that every time we would have gone to parent we go to
+				// farChild child.
+
+			case EBVHTransition::FromParent:
+				if (current->isLeaf) {
+					t = computeIntersection(pathSegment, *current->geom, tmp_intersect, tmp_normal);
+					// Compute the minimum t from the intersection tests to determine what
+					// scene geometry object was hit first.
+					if (t > 0.0f && t_min > t)
+					{
+						t_min = t;
+						intersect_point = tmp_intersect;
+						normal = tmp_normal;
+						hit_geom = current->geom;
+					}
+
+					current = current->parent->farChild;
+					transition = EBVHTransition::FromSibling;
+				}
+				else {
+					// When this isn't a leaf node, geom stores the bbox transformation
+					bool isOutside = bboxIntersectionTest(*current->geom, pathSegments[path_index].ray);
+					if (isOutside) {
+						// Missed, go back up to parent
+						current = current->parent->farChild;
+						transition = EBVHTransition::FromSibling;
+					}
+					else {
+						// Hit, enter its subtree
+						current = current->parent->nearChild;
+						transition = EBVHTransition::FromParent;
+					}
+				}
+				break;
+			
+			default:
+				// *N.B*: Should never reach here
+				assert(false);
+				break;
+			}
+		}
+		
+		if (hit_geom == nullptr)
+		{
+			intersections[path_index].t = -1.0f;
+		}
+		else
+		{
+			//The ray hits something
+			intersections[path_index].t = t_min;
+			intersections[path_index].materialId = hit_geom->materialid;
+			intersections[path_index].surfaceNormal = normal;
+			intersections[path_index].intersect_point = intersect_point;
+		}
 	}
 }
 
@@ -165,7 +367,6 @@ __global__ void computeIntersections(
 		glm::vec3 normal;
 		float t_min = FLT_MAX;
 		int hit_geom_index = -1;
-		bool outside = true;
 
 		glm::vec3 tmp_intersect;
 		glm::vec3 tmp_normal;
@@ -176,15 +377,7 @@ __global__ void computeIntersections(
 		{
 			Geom & geom = geoms[i];
 
-			if (geom.type == CUBE)
-			{
-				t = boxIntersectionTest(geom, pathSegment.ray, tmp_intersect, tmp_normal, outside);
-			}
-			else if (geom.type == SPHERE)
-			{
-				t = sphereIntersectionTest(geom, pathSegment.ray, tmp_intersect, tmp_normal, outside);
-			}
-			// TODO: add more intersection tests here... triangle? metaball? CSG?
+			t = computeIntersection(pathSegments[path_index], geom, tmp_intersect, tmp_normal);
 
 			// Compute the minimum t from the intersection tests to determine what
 			// scene geometry object was hit first.
@@ -253,61 +446,13 @@ __global__ void shadeMaterial(
 	}
 }
 
-// LOOK: "fake" shader demonstrating what you might do with the info in
-// a ShadeableIntersection, as well as how to use thrust's random number
-// generator. Observe that since the thrust random number generator basically
-// adds "noise" to the iteration, the image should start off noisy and get
-// cleaner as more iterations are computed.
-//
-// Note that this shader does NOT do a BSDF evaluation!
-// Your shaders should handle that - this can allow techniques such as
-// bump mapping.
-__global__ void shadeFakeMaterial (
-    int iter
-    , int num_paths
-	, ShadeableIntersection * shadeableIntersections
-	, PathSegment * pathSegments
-	, Material * materials
-	)
-{
-  int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < num_paths)
-  {
-    ShadeableIntersection intersection = shadeableIntersections[idx];
-    if (intersection.t > 0.0f) { // if the intersection exists...
-      // Set up the RNG
-      // LOOK: this is how you use thrust's RNG! Please look at
-      // makeSeededRandomEngine as well.
-      thrust::default_random_engine rng = makeSeededRandomEngine(iter, idx, 0);
-      thrust::uniform_real_distribution<float> u01(0, 1);
-
-      Material material = materials[intersection.materialId];
-      glm::vec3 materialColor = material.color;
-
-      // If the material indicates that the object was a light, "light" the ray
-      if (material.emittance > 0.0f) {
-        pathSegments[idx].color *= (materialColor * material.emittance);
-      }
-      // Otherwise, do some pseudo-lighting computation. This is actually more
-      // like what you would expect from shading in a rasterizer like OpenGL.
-      // TODO: replace this! you should be able to start with basically a one-liner
-      else {
-        float lightTerm = glm::dot(intersection.surfaceNormal, glm::vec3(0.0f, 1.0f, 0.0f));
-        pathSegments[idx].color *= (materialColor * lightTerm) * 0.3f + ((1.0f - intersection.t * 0.02f) * materialColor) * 0.7f;
-        pathSegments[idx].color *= u01(rng); // apply some noise because why not
-      }
-    // If there was no intersection, color the ray black.
-    // Lots of renderers use 4 channel color, RGBA, where A = alpha, often
-    // used for opacity, in which case they can indicate "no opacity".
-    // This can be useful for post-processing and image compositing.
-    } else {
-      pathSegments[idx].color = glm::vec3(0.0f);
-    }
-  }
-}
-
 // Add the current iteration's output to the overall image
-__global__ void finalGather(int nPaths, glm::vec3 * image, PathSegment * iterationPaths)
+__global__ void finalGather(
+	const Camera cam
+	, int nPaths
+	, glm::vec3* image
+	, PathSegment* iterationPaths
+	)
 {
 	int index = (blockIdx.x * blockDim.x) + threadIdx.x;
 
@@ -325,7 +470,7 @@ struct shouldTerminatePath
 	__host__ __device__
 	bool operator()(const PathSegment& p)
 	{
-		return p.remainingBounces <= 0;
+		return p.remainingBounces > 0;
 	};
 };
 
@@ -334,7 +479,7 @@ struct shouldTerminatePath
  * of memory management
  */
 void pathtrace(uchar4 *pbo, int frame, int iter) {
-    const int traceDepth = hst_scene->state.traceDepth;
+	const int traceDepth = hst_scene->state.traceDepth;
     const Camera &cam = hst_scene->state.camera;
     const int pixelcount = cam.resolution.x * cam.resolution.y;
 
@@ -388,6 +533,8 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 	// --- PathSegment Tracing Stage ---
 	// Shoot ray into scene, bounce between objects, push shading chunks
 
+	//thrust::sort()
+
 	bool iterationComplete = false;
 	while (!iterationComplete) {
 
@@ -419,22 +566,25 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 		// path segments that have been reshuffled to be contiguous in memory.
 
 		shadeMaterial<<<numblocksPathSegmentTracing, blockSize1d>>> (
-		iter,
-		num_paths,
-		dev_intersections,
-		dev_paths,
-		dev_materials
+			iter,
+			num_paths,
+			dev_intersections,
+			dev_paths,
+			dev_materials
 		);
 
-		//PathSegment* new_dev_path_end = thrust::remove_if(thrust::device, dev_paths, dev_paths + num_paths, shouldTerminatePath());
-		//num_paths = new_dev_path_end - dev_paths;
+		PathSegment* new_dev_path_end = thrust::partition(thrust::device, dev_paths, dev_paths + num_paths, shouldTerminatePath());
+		num_paths = new_dev_path_end - dev_paths;
 
-		iterationComplete = depth == 4; // TODO: should be based off stream compaction results.
+		iterationComplete = num_paths == 0 || depth > traceDepth; // TODO: should be based off stream compaction results.
 	}
+
+	num_paths = dev_path_end - dev_paths;
 
 	// Assemble this iteration and apply it to the image
 	dim3 numBlocksPixels = (pixelcount + blockSize1d - 1) / blockSize1d;
-	finalGather << <numBlocksPixels, blockSize1d >> >(num_paths, dev_image, dev_paths);
+	finalGather << <numBlocksPixels, blockSize1d >> >(cam, num_paths, dev_image, dev_paths);
+
 
 	///////////////////////////////////////////////////////////////////////////
 
