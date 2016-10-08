@@ -1,4 +1,7 @@
 #include "bbox.h"
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+#include "shaderProgram.h"
 
 glm::vec3 Centroid(
 	const glm::vec3& a,
@@ -56,5 +59,115 @@ EAxis BBoxMaximumExtent(const BBox& bbox) {
 	else {
 		return EAxis::Z;
 	}
+}
+
+// ============== OpenGL Specifics ===================== //
+
+const int BBOX_IDX_COUNT = 24;
+const int BBOX_VERT_COUNT = 8;
+
+void createBBoxVertexPositions(
+	const BBox& bbox, 
+	std::vector<glm::vec3>& bbox_vert_pos
+	)
+{
+	bbox_vert_pos.push_back(glm::vec3(bbox.max.x, bbox.max.y, bbox.max.z));
+	bbox_vert_pos.push_back(glm::vec3(bbox.max.x, bbox.max.y, bbox.min.z));
+	bbox_vert_pos.push_back(glm::vec3(bbox.max.x, bbox.min.y, bbox.max.z));
+	bbox_vert_pos.push_back(glm::vec3(bbox.max.x, bbox.min.y, bbox.min.z));
+	bbox_vert_pos.push_back(glm::vec3(bbox.min.x, bbox.max.y, bbox.max.z));
+	bbox_vert_pos.push_back(glm::vec3(bbox.min.x, bbox.max.y, bbox.min.z));
+	bbox_vert_pos.push_back(glm::vec3(bbox.min.x, bbox.min.y, bbox.max.z));
+	bbox_vert_pos.push_back(glm::vec3(bbox.min.x, bbox.min.y, bbox.min.z));
+}
+
+void createBBoxVertexNormals(
+	std::vector<glm::vec3>& bbox_vert_normals
+	)
+{
+	// For bbox, we don't really care about normals, so just give it watever
+	for (int i = 0; i < BBOX_VERT_COUNT; ++i) {
+		bbox_vert_normals.push_back(glm::vec3());
+	}
+}
+
+void createBBoxVertexColors(
+	std::vector<glm::vec4>& bbox_vert_col
+	)
+{
+	for (int i = 0; i < BBOX_VERT_COUNT; i++){
+		bbox_vert_col.push_back(glm::vec4(1.f, 0, 1.f, 1.0f));
+	}
+}
+
+void createBBoxIndices(std::vector<GLushort>& bbox_idx)
+{
+	int idx = 0;
+
+	bbox_idx[idx++] = 0;
+	bbox_idx[idx++] = 1;
+	bbox_idx[idx++] = 1;
+	bbox_idx[idx++] = 3;
+	bbox_idx[idx++] = 3;
+	bbox_idx[idx++] = 2;
+	bbox_idx[idx++] = 2;
+	bbox_idx[idx++] = 0;
+	bbox_idx[idx++] = 0;
+	bbox_idx[idx++] = 4;
+	bbox_idx[idx++] = 4;
+	bbox_idx[idx++] = 6;
+	bbox_idx[idx++] = 6;
+	bbox_idx[idx++] = 2;
+	bbox_idx[idx++] = 3;
+	bbox_idx[idx++] = 7;
+	bbox_idx[idx++] = 7;
+	bbox_idx[idx++] = 6;
+	bbox_idx[idx++] = 1;
+	bbox_idx[idx++] = 5;
+	bbox_idx[idx++] = 5;
+	bbox_idx[idx++] = 4;
+	bbox_idx[idx++] = 5;
+	bbox_idx[idx++] = 7;
+}
+
+
+void initBBoxVAO(const BBox& bbox, GeomVAO& bboxVao)
+{
+	std::vector<GLushort> bbox_idx;
+	std::vector<glm::vec3> bbox_vert_pos;
+	std::vector<glm::vec3> bbox_vert_nor;
+	std::vector<glm::vec4> bbox_vert_col;
+
+	createBBoxVertexPositions(bbox, bbox_vert_pos);
+	createBBoxVertexNormals(bbox_vert_nor);
+	createBBoxVertexColors(bbox_vert_col);
+	createBBoxIndices(bbox_idx);
+
+	// Generate all the buffers that we need
+	GLuint vao;
+	glGenVertexArrays(1, &vao);
+
+	GLuint vertexBufferObjID[4];
+	glGenBuffers(4, vertexBufferObjID);
+
+	updateVAO(
+		vao,
+		vertexBufferObjID[0],
+		bbox_vert_pos,
+		vertexBufferObjID[1],
+		bbox_vert_nor,
+		vertexBufferObjID[2],
+		bbox_vert_col,
+		vertexBufferObjID[3],
+		bbox_idx
+		);
+
+	// Populate geom vao
+	bboxVao.vao = vao;
+	bboxVao.posBuf = vertexBufferObjID[0];
+	bboxVao.norBuf = vertexBufferObjID[1];
+	bboxVao.colBuf = vertexBufferObjID[2];
+	bboxVao.idxBuf = vertexBufferObjID[3];
+	bboxVao.elementCount = BBOX_IDX_COUNT;
 }
 

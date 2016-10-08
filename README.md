@@ -74,3 +74,15 @@ There are only three traversal states that a node can be entered:
 Uses shared memory to store BVH stack
 
 [Stack-less BVH traversal](https://graphics.cg.uni-saarland.de/fileadmin/cguds/papers/2011/hapala_sccg2011/hapala_sccg2011.pdf)
+
+#Note
+
+Please update the path to the shader program properly
+
+Added the following to CMakeList.txt
+	"bbox.h"
+	"bbox.cpp"
+	"bvh.h"
+	"bvh.cpp"
+	"shaderProgram.h"
+	"shaderProgram.cpp"

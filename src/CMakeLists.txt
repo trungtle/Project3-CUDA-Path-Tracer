@@ -19,6 +19,8 @@ set(SOURCE_FILES
 	"bbox.cpp"
 	"bvh.h"
 	"bvh.cpp"
+	"shaderProgram.h"
+	"shaderProgram.cpp"
     )
 
 cuda_add_library(src

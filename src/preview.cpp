@@ -188,3 +188,4 @@ void mainLoop() {
     glfwDestroyWindow(window);
     glfwTerminate();
 }
+

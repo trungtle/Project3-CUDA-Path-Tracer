@@ -3,6 +3,7 @@
 #include <cstring>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtx/string_cast.hpp>
+#include "shaderProgram.h"
 
 Scene::Scene(string filename) {
     cout << "Reading scene from " << filename << " ..." << endl;
@@ -168,16 +169,14 @@ int Scene::initBVH() {
 	// Construct leaves
 	std::vector<BVHNode*> leaves;
 	leaves.reserve(geoms.size());
+	
 	for (auto& geom : geoms) {
-		// Populate the leaf
 		BVHNode* leafNode = new BVHNode();
-
-		// BBox isn't used here since it's the leaf node
 		populateLeafBVHNode(leafNode, &geom);
 		leaves.push_back(leafNode);
 	}
 
-	// Construct BVHTree recursively
+	// Construct the rest of BVHTree recursively
 	root = buildBVHTreeRecursive(leaves, 0, leaves.size() - 1);
  	return 1;
 }

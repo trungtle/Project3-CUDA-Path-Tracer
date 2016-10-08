@@ -44,3 +44,5 @@ BBox BBoxFromGeom(const Geom& geom);
  * \return 
  */
 EAxis BBoxMaximumExtent(const BBox& bbox);
+
+void initBBoxVAO();
