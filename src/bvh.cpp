@@ -7,7 +7,7 @@ void populateLeafBVHNode(
 	)
 {
 	node->geom = geom;
-	node->bbox = BBoxFromGeom(*geom);
+	node->bbox = BBox::BBoxFromGeom(*geom);
 	node->nearChild = nullptr;
 	node->farChild = nullptr;
 	node->parent = nullptr;
@@ -16,11 +16,11 @@ void populateLeafBVHNode(
 void populateInteriorBVHNode(
 	BVHNode* node,
 	Geom* geom,
-	BBox& bbox,
+	BBox::BBox& bbox,
 	BVHNode* nearChild,
 	BVHNode* farChild,
 	BVHNode* parent,
-	EAxis splitAxis
+	BBox::EAxis splitAxis
 	)
 {
 	node->geom = geom;
@@ -63,12 +63,12 @@ BVHNode* buildBVHTreeRecursive(std::vector<BVHNode*>& leaves, int first, int las
 	// Build near child
 	node->nearChild = buildBVHTreeRecursive(leaves, first, mid);
 	node->nearChild->parent = node;
-	node->nearChild->splitAxis = static_cast<EAxis>(dim);
+	node->nearChild->splitAxis = static_cast<BBox::EAxis>(dim);
 
 	// Build far child
 	node->farChild = buildBVHTreeRecursive(leaves, mid + 1, last);
 	node->farChild->parent = node;
-	node->farChild->splitAxis = static_cast<EAxis>(dim);
+	node->farChild->splitAxis = static_cast<BBox::EAxis>(dim);
 	return node;
 
 }

@@ -9,21 +9,21 @@ typedef enum {
 
 struct BVHNode {
 	Geom* geom; // When this isn't a leaf node, geom contains the bbox shape, which is a cube
-	BBox bbox;
+	BBox:: BBox bbox;
 	BVHNode* nearChild;
 	BVHNode* farChild;
 	BVHNode* parent;
-	EAxis splitAxis;
+	BBox::EAxis splitAxis;
 };
 
 void populateInteriorBVHNode(
 	BVHNode* node,
 	Geom* geom,
-	BBox& bbox,
+	BBox::BBox& bbox,
 	BVHNode* nearChild,
 	BVHNode* farChild,
 	BVHNode* parent,
-	EAxis splitAxis
+	BBox::EAxis splitAxis
 	);
 
 void populateLeafBVHNode(

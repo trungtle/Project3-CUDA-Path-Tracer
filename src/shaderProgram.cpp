@@ -6,8 +6,8 @@ ShaderProgram::ShaderProgram(
 	)
 {
 	const char *attribLocations[] = { "Position", "Texcoords" };
-	m_programID = glslUtility::createProgram(attribLocations, 2, "E:\CODES\Penn\CIS565\Project3-CUDA-Path-Tracer\src\glsl\simple.vert", "E:\CODES\Penn\CIS565\Project3-CUDA-Path-Tracer\src\glsl\simple.frag");
-
+	m_programID = glslUtility::createProgram("E:\CODES\Penn\CIS565\Project3-CUDA-Path-Tracer\src\glsl\simple.vert", "E:\CODES\Penn\CIS565\Project3-CUDA-Path-Tracer\src\glsl\simple.frag", attribLocations, 2);
+	
 	m_unifModel = glGetUniformLocation(m_programID, "u_model");
 	m_unifViewProj = glGetUniformLocation(m_programID, "u_viewProj");
 
