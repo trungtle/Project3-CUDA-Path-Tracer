@@ -6,7 +6,7 @@
 #include <iostream>
 #include "glm/glm.hpp"
 #include "utilities.h"
-#include "sceneStructs.h"
+#include "bvh.h"
 
 using namespace std;
 

@@ -16,7 +16,9 @@ set(SOURCE_FILES
     "utilities.cpp"
     "utilities.h"
 	"bbox.h"
+	"bbox.cpp"
 	"bvh.h"
+	"bvh.cpp"
     )
 
 cuda_add_library(src

@@ -251,9 +251,8 @@ __global__ void traverseBVH(
 
 			case EBVHTransition::FromSibling:
 
-				if (current->isLeaf) {
-					// compute intersection and save into a list;
-					
+				if (current->nearChild == nullptr && current->farChild == nullptr) {
+					// Leaf node
 					t = computeIntersection(pathSegment, *current->geom, tmp_intersect, tmp_normal);
 					// Compute the minimum t from the intersection tests to determine what
 					// scene geometry object was hit first.
@@ -291,7 +290,8 @@ __global__ void traverseBVH(
 				// farChild child.
 
 			case EBVHTransition::FromParent:
-				if (current->isLeaf) {
+				if (current->nearChild == nullptr && current->farChild == nullptr) {
+					// Leaf node
 					t = computeIntersection(pathSegment, *current->geom, tmp_intersect, tmp_normal);
 					// Compute the minimum t from the intersection tests to determine what
 					// scene geometry object was hit first.

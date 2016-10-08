@@ -30,6 +30,12 @@ Scene::Scene(string filename) {
             }
         }
     }
+
+	initBVH();
+}
+
+Scene::~Scene() {
+	// Delete BVH tree
 }
 
 int Scene::loadGeom(string objectid) {
@@ -159,19 +165,21 @@ int Scene::loadCamera() {
 
 int Scene::initBVH() {
 
-	root = new BVHNode();
-
 	// Construct leaves
 	std::vector<BVHNode*> leaves;
+	leaves.reserve(geoms.size());
 	for (auto& geom : geoms) {
-		BVHNode* newNode = new BVHNode(
-			true,
-			&geom
-			);
+		// Populate the leaf
+		BVHNode* leafNode = new BVHNode();
 
+		// BBox isn't used here since it's the leaf node
+		populateLeafBVHNode(leafNode, &geom);
+		leaves.push_back(leafNode);
 	}
 
-	return 1;
+	// Construct BVHTree recursively
+	root = buildBVHTreeRecursive(leaves, 0, leaves.size() - 1);
+ 	return 1;
 }
 
 int Scene::loadMaterial(string materialid) {
