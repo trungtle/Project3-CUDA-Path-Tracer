@@ -31,6 +31,9 @@ struct Geom {
 	glm::vec3 vert0; // For triangle
 	glm::vec3 vert1; // For triangle
 	glm::vec3 vert2; // For triangle
+	glm::vec3 norm0; // For triangle
+	glm::vec3 norm1; // For triangle
+	glm::vec3 norm2; // For triangle
 };
 
 struct Material {

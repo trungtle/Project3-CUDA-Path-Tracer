@@ -419,25 +419,37 @@ int Scene::loadSceneFromObj(
 
 	PrintInfo(attrib, shapes, materials);
 
+	// Add new materials into material list
+	int nextMaterialId = this->materials.size();
+	Material newMaterial;
+	for (auto& material : materials) {
+		newMaterial.color = glm::vec3(material.diffuse[0], material.diffuse[1], material.diffuse[2]);
+		newMaterial.emittance = (material.ambient[0] + material.ambient[1] + material.ambient[2]) / 3.f;
+		newMaterial.specular.color = glm::vec3(material.specular[0], material.specular[1], material.specular[2]);
+		newMaterial.hasReflective = material.illum == 3 || material.illum == 5 || material.illum == 8 ? 1 : 0;
+		// No refraction for now
+		this->materials.push_back(newMaterial);
+	}
+
 	// Add triangulated mesh to geoms list
 	for (const auto& shape : shapes) {
 
 		size_t index_offset = 0;
 
 		// For each face, create a triangle
-		for (auto f = 0; f < shape.mesh.num_face_vertices.size(); ++f) {
+		for (auto face = 0; face < shape.mesh.num_face_vertices.size(); ++face) {
 
-			size_t fnum = shape.mesh.num_face_vertices[f];
+			size_t fnum = shape.mesh.num_face_vertices[face];
 
 			Geom newTriangle;
 			newTriangle.type = TRIANGLE;
-			newTriangle.materialid = 1;
 			newTriangle.translation = glm::vec3();
 			newTriangle.rotation = glm::vec3();
 			newTriangle.scale = glm::vec3();
 			newTriangle.transform = glm::mat4(1.f);
 			newTriangle.inverseTransform = glm::inverse(newTriangle.transform);
 			newTriangle.invTranspose = glm::inverseTranspose(newTriangle.transform);
+			newTriangle.materialid = shape.mesh.material_ids[face] + nextMaterialId;
 
 			int vert0Idx = shape.mesh.indices[index_offset + 0].vertex_index;
 			newTriangle.vert0 = glm::vec3(
@@ -457,6 +469,35 @@ int Scene::loadSceneFromObj(
 				attrib.vertices[3 * vert2Idx + 1],
 				attrib.vertices[3 * vert2Idx + 2]
 				);
+
+			// There are normals information, read from attrib, otherwise we can compute them using cross products
+			if (attrib.normals.size() > 0) {
+				int nor0Idx = shape.mesh.indices[index_offset + 0].normal_index;
+				newTriangle.norm0 = glm::vec3(
+					attrib.normals[3 * nor0Idx + 0],
+					attrib.normals[3 * nor0Idx + 1],
+					attrib.normals[3 * nor0Idx + 2]
+					);
+				int nor1Idx = shape.mesh.indices[index_offset + 1].normal_index;
+				newTriangle.norm1 = glm::vec3(
+					attrib.normals[3 * nor1Idx + 0],
+					attrib.normals[3 * nor1Idx + 1],
+					attrib.normals[3 * nor1Idx + 2]
+					);
+				int nor2Idx = shape.mesh.indices[index_offset + 2].normal_index;
+				newTriangle.norm2 = glm::vec3(
+					attrib.normals[3 * nor2Idx + 0],
+					attrib.normals[3 * nor2Idx + 1],
+					attrib.normals[3 * nor2Idx + 2]
+					);
+			} else {
+				glm::vec3 edge1 = newTriangle.vert2 - newTriangle.vert0;
+				glm::vec3 edge2 = newTriangle.vert1 - newTriangle.vert0;
+				newTriangle.norm0 = glm::cross(edge2, edge1);
+				newTriangle.norm1 = glm::cross(edge2, edge1);
+				newTriangle.norm2 = glm::cross(edge2, edge1);
+			}
+
 
 			index_offset += fnum;
 			geoms.push_back(newTriangle);

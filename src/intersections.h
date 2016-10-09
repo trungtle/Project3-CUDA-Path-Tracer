@@ -206,42 +206,43 @@ __host__ __device__ float triangleIntersectionTest(const Geom& tri, Ray r,
 	glm::vec3 pvec = glm::cross(rt.direction, edge2);
 	// If determinant is 0, ray lies in plane of triangle
 	float det = glm::dot(pvec, edge1);
-	if (det < EPSILON) {
+	if (det < 0.000001f && det > - 0.000001f) {
 		outside = true;
 		return -1;
 	}
+	float inv_det = 1.0f / det;
+	glm::vec3 tvec = rt.origin - tri.vert0;
 
 	// u, v are the barycentric coordinates of the intersection point in the triangle
 	// t is the distance between the ray's origin and the point of intersection
 	float u, v;
 
 	// Compute u
-	glm::vec3 tvec = rt.origin - tri.vert0;
-	u = glm::dot(pvec, tvec);
-	if (u < 0.0f || u > det) {
+	u = glm::dot(pvec, tvec) * inv_det;
+	if (u < 0.0f || u > 1) {
 		outside = true;
 		return -1;
 	}
 
 	// Compute v
 	glm::vec3 qvec = glm::cross(tvec, edge1);
-	v = glm::dot(rt.direction, qvec);
-	if (v < 0.0f || (u + v) > det) {
+	v = glm::dot(rt.direction, qvec) * inv_det;
+	if (v < 0.0f || (u + v) > 1.0f) {
 		outside = true;
 		return -1;
 	}
 
 	// Compute t
-	t = glm::dot(edge2, qvec);
-	float inv_det = 1.0f / det;
-	u *= inv_det;
-	v *= inv_det;
-	t *= inv_det;
+	t = glm::dot(edge2, qvec) * inv_det;
 
+	outside = false;
 	glm::vec3 objspaceIntersection = getPointOnRay(rt, t);
 
 	intersectionPoint = multiplyMV(tri.transform, glm::vec4(objspaceIntersection, 1.f));
-	normal = glm::normalize(multiplyMV(tri.invTranspose, glm::vec4(glm::cross(tri.vert1, tri.vert0), 0.f)));
+
+	// Interpolate the normal
+	glm::vec3 objspaceNormal = glm::normalize(tri.norm0 * (1 - u - v) + tri.norm1 * u + tri.norm2 * v);
+	normal = glm::normalize(multiplyMV(tri.invTranspose, glm::vec4(objspaceNormal, 0.f)));
 
 	return t;
 
