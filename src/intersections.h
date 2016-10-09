@@ -182,3 +182,67 @@ __host__ __device__ float sphereIntersectionTest(Geom sphere, Ray r,
     return glm::length(r.origin - intersectionPoint);
 }
 
+
+__host__ __device__ float triangleIntersectionTest(const Geom& tri, Ray r,
+	glm::vec3 &intersectionPoint, glm::vec3 &normal, bool &outside) {
+
+	glm::vec3 ro = multiplyMV(tri.inverseTransform, glm::vec4(r.origin, 1.0f));
+	glm::vec3 rd = glm::normalize(multiplyMV(tri.inverseTransform, glm::vec4(r.direction, 0.0f)));
+
+	Ray rt;
+	rt.origin = ro;
+	rt.direction = rd;
+
+	// Compute fast intersection using Muller and Trumbore, this skips computing the plane's equation.
+	// See https://www.cs.virginia.edu/~gfx/Courses/2003/ImageSynthesis/papers/Acceleration/Fast%20MinimumStorage%20RayTriangle%20Intersection.pdf
+
+	float t = -1;
+
+	// Find the edges that share vertice 0
+	glm::vec3 edge1 = tri.vert1 - tri.vert0;
+	glm::vec3 edge2 = tri.vert2 - tri.vert0;
+
+	// Being computing determinante. Store pvec for recomputation
+	glm::vec3 pvec = glm::cross(rt.direction, edge2);
+	// If determinant is 0, ray lies in plane of triangle
+	float det = glm::dot(pvec, edge1);
+	if (det < EPSILON) {
+		outside = true;
+		return -1;
+	}
+
+	// u, v are the barycentric coordinates of the intersection point in the triangle
+	// t is the distance between the ray's origin and the point of intersection
+	float u, v;
+
+	// Compute u
+	glm::vec3 tvec = rt.origin - tri.vert0;
+	u = glm::dot(pvec, tvec);
+	if (u < 0.0f || u > det) {
+		outside = true;
+		return -1;
+	}
+
+	// Compute v
+	glm::vec3 qvec = glm::cross(tvec, edge1);
+	v = glm::dot(rt.direction, qvec);
+	if (v < 0.0f || (u + v) > det) {
+		outside = true;
+		return -1;
+	}
+
+	// Compute t
+	t = glm::dot(edge2, qvec);
+	float inv_det = 1.0f / det;
+	u *= inv_det;
+	v *= inv_det;
+	t *= inv_det;
+
+	glm::vec3 objspaceIntersection = getPointOnRay(rt, t);
+
+	intersectionPoint = multiplyMV(tri.transform, glm::vec4(objspaceIntersection, 1.f));
+	normal = glm::normalize(multiplyMV(tri.invTranspose, glm::vec4(glm::cross(tri.vert1, tri.vert0), 0.f)));
+
+	return t;
+
+}

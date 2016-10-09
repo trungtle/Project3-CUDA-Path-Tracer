@@ -175,6 +175,10 @@ __device__ float computeIntersection(
 	else if (geom.type == SPHERE)
 	{
 		t = sphereIntersectionTest(geom, pathSegment.ray, intersect_point, normal, outside);
+	} 
+	else if (geom.type == TRIANGLE) 
+	{
+		t = triangleIntersectionTest(geom, pathSegment.ray, intersect_point, normal, outside);
 	}
 
 	return t;

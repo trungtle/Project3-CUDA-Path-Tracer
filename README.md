@@ -75,6 +75,14 @@ Uses shared memory to store BVH stack
 
 [Stack-less BVH traversal](https://graphics.cg.uni-saarland.de/fileadmin/cguds/papers/2011/hapala_sccg2011/hapala_sccg2011.pdf)
 
+I attempted to use glm::intersectRayTriangle, but it wasn't well documented what the output should have been. After checking https://github.com/g-truc/glm/issues/6, I realized that
+` intersection (cartesian) = origin + direction * baryPosition.z `
+But CUDA was also running into an issue with stack limit that failed calling this function, so I ended up writing my version for triangle intersection following the [fast, minimum storage ray/triangle intersection by Muller and Trumbore](https://www.cs.virginia.edu/~gfx/Courses/2003/ImageSynthesis/papers/Acceleration/Fast%20MinimumStorage%20RayTriangle%20Intersection.pdf). THe advantage of this method is that the plane equation doesn't have to be computed on the fly or be stored, which increases memory savings for triangle meshes.
+
+#Thirdparty codes
+
+tinyobjloader (see LICENSE page for LICENSE)
+
 #Note
 
 Please update the path to the shader program properly

@@ -8,6 +8,8 @@ set(SOURCE_FILES
     "glslUtility.cpp"
     "pathtrace.cu"
     "pathtrace.h"
+	"tinyobjloader/tiny_obj_loader.h"
+	"tinyobjloader/tiny_obj_loader.cc"
     "scene.cpp"
     "scene.h"
     "sceneStructs.h"

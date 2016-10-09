@@ -16,6 +16,11 @@ private:
     int loadMaterial(string materialid);
     int loadGeom(string objectid);
     int loadCamera();
+	int loadSceneFromObj(
+		const char* filename,
+		const char* basepath = nullptr,
+		bool triangulate = true
+		);
 	int destroyBVH();
 public:
     Scene(string filename);
