@@ -35,7 +35,10 @@ Scene::Scene(string filename) {
         }
     }
 
-	loadSceneFromObj("E:/CODES/Penn/CIS565/Project3-CUDA-Path-Tracer/scenes/obj/cube.obj", "E:/CODES/Penn/CIS565/Project3-CUDA-Path-Tracer/scenes/obj/", true);
+	isBVHEnabled = true;
+	isVisualizationEnabled = true;
+
+	//loadSceneFromObj("E:/CODES/Penn/CIS565/Project3-CUDA-Path-Tracer/scenes/obj/catmark_torus_creases0.obj", "", true);
 }
 
 Scene::~Scene() {
@@ -212,14 +215,16 @@ int Scene::initBVH() {
 	std::vector<BVHNode*> leaves;
 	leaves.reserve(geoms.size());
 
-	for (auto& geom : geoms) {
+	for (int i = 0; i < geoms.size(); ++i) {
 		BVHNode* leafNode = new BVHNode();
-		populateLeafBVHNode(leafNode, &geom);
+		populateLeafBVHNode(leafNode, i, geoms.at(i));
 		leaves.push_back(leafNode);
 	}
 
 	// Construct the rest of BVHTree recursively
 	root = buildBVHTreeRecursive(leaves, 0, leaves.size() - 1);
+
+	flattenBHVTree(this->bvhNodes, root);
 	return 1;
 }
 
@@ -417,7 +422,7 @@ int Scene::loadSceneFromObj(
 		return false;
 	}
 
-	PrintInfo(attrib, shapes, materials);
+	//PrintInfo(attrib, shapes, materials);
 
 	// Add new materials into material list
 	int nextMaterialId = this->materials.size();
@@ -449,7 +454,12 @@ int Scene::loadSceneFromObj(
 			newTriangle.transform = glm::mat4(1.f);
 			newTriangle.inverseTransform = glm::inverse(newTriangle.transform);
 			newTriangle.invTranspose = glm::inverseTranspose(newTriangle.transform);
-			newTriangle.materialid = shape.mesh.material_ids[face] + nextMaterialId;
+			if (shape.mesh.material_ids[face] == -1) {
+				// If there isn't a material in mtl file, give it a default material in our scene
+				newTriangle.materialid = 1;
+			} else {
+				newTriangle.materialid = shape.mesh.material_ids[face] + nextMaterialId;
+			}
 
 			int vert0Idx = shape.mesh.indices[index_offset + 0].vertex_index;
 			newTriangle.vert0 = glm::vec3(

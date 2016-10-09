@@ -83,6 +83,11 @@ But CUDA was also running into an issue with stack limit that failed calling thi
 
 tinyobjloader (see LICENSE page for LICENSE)
 
+# Camera control
+- Left mouse drag to pan left/righ/up/down
+- Right mouse drag to zoom in/out
+- Middle mouse drag to change look at point
+
 #Note
 
 Please update the path to the shader program properly
