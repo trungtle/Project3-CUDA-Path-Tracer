@@ -147,7 +147,8 @@ __global__ void generateRayFromCamera(
 			thrust::default_random_engine rng = makeSeededRandomEngine(iter, index, 0);
 			thrust::uniform_real_distribution<float> u01(0, 1);
 
-			segment.ray.direction = glm::normalize(cam.view
+			segment.ray.direction = glm::normalize(
+				cam.forward
 				- cam.right * cam.pixelLength.x * ((float)x - (float)cam.resolution.x * 0.5f )
 				- cam.up * cam.pixelLength.y * ((float)y - (float)cam.resolution.y * 0.5f)
 				);

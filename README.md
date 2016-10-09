@@ -86,3 +86,5 @@ Added the following to CMakeList.txt
 	"bvh.cpp"
 	"shaderProgram.h"
 	"shaderProgram.cpp"
+	"camera.h"
+	"camera.cpp"

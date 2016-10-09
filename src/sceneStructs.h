@@ -4,6 +4,7 @@
 #include <vector>
 #include <cuda_runtime.h>
 #include "glm/glm.hpp"
+#include "camera.h"
 
 #define BACKGROUND_COLOR (glm::vec3(0.0f))
 
@@ -38,18 +39,6 @@ struct Material {
     float hasRefractive;
     float indexOfRefraction;
     float emittance;
-};
-
-struct Camera {
-    glm::ivec2 resolution;
-    glm::vec3 position;
-    glm::vec3 lookAt;
-    glm::vec3 view;
-    glm::vec3 up;
-    glm::vec3 right;
-    glm::vec2 fov;
-    glm::vec2 pixelLength;
-	int samplesPerPixel;
 };
 
 struct RenderState {

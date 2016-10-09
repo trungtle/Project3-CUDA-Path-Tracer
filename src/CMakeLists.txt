@@ -11,6 +11,8 @@ set(SOURCE_FILES
     "scene.cpp"
     "scene.h"
     "sceneStructs.h"
+	"camera.h"
+	"camera.cpp"
     "preview.h"
     "preview.cpp"
     "utilities.cpp"
