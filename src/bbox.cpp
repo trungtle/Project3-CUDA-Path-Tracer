@@ -34,19 +34,31 @@ namespace BBox {
 
 		BBox box;
 
-		// Convert to world first
-		glm::vec3 p0 = glm::vec3(geom.transform * glm::vec4(-.5f, -.5f, -.5f, 1.0f));
-		glm::vec3 p1 = glm::vec3(geom.transform * glm::vec4(-.5f, -.5f, .5f, 1.0f));
-		glm::vec3 p2 = glm::vec3(geom.transform * glm::vec4(-.5f, .5f, -.5f, 1.0f));
-		glm::vec3 p3 = glm::vec3(geom.transform * glm::vec4(-.5f, .5f, .5f, 1.0f));
-		glm::vec3 p4 = glm::vec3(geom.transform * glm::vec4(.5f, -.5f, -.5f, 1.0f));
-		glm::vec3 p5 = glm::vec3(geom.transform * glm::vec4(.5f, -.5f, .5f, 1.0f));
-		glm::vec3 p6 = glm::vec3(geom.transform * glm::vec4(.5f, .5f, -.5f, 1.0f));
-		glm::vec3 p7 = glm::vec3(geom.transform * glm::vec4(.5f, .5f, .5f, 1.0f));
+		if (geom.type == CUBE || geom.type == SPHERE) {
+			// Convert to world first
+			glm::vec3 p0 = glm::vec3(geom.transform * glm::vec4(-.5f, -.5f, -.5f, 1.0f));
+			glm::vec3 p1 = glm::vec3(geom.transform * glm::vec4(-.5f, -.5f, .5f, 1.0f));
+			glm::vec3 p2 = glm::vec3(geom.transform * glm::vec4(-.5f, .5f, -.5f, 1.0f));
+			glm::vec3 p3 = glm::vec3(geom.transform * glm::vec4(-.5f, .5f, .5f, 1.0f));
+			glm::vec3 p4 = glm::vec3(geom.transform * glm::vec4(.5f, -.5f, -.5f, 1.0f));
+			glm::vec3 p5 = glm::vec3(geom.transform * glm::vec4(.5f, -.5f, .5f, 1.0f));
+			glm::vec3 p6 = glm::vec3(geom.transform * glm::vec4(.5f, .5f, -.5f, 1.0f));
+			glm::vec3 p7 = glm::vec3(geom.transform * glm::vec4(.5f, .5f, .5f, 1.0f));
 
-		box.min = glm::min(p0, glm::min(p1, glm::min(p2, glm::min(p3, glm::min(p4, glm::min(p5, glm::min(p6, p7)))))));
-		box.max = glm::max(p0, glm::max(p1, glm::max(p2, glm::max(p3, glm::max(p4, glm::max(p5, glm::max(p6, p7)))))));
-		box.centroid = Centroid(box.min, box.max);
+			box.min = glm::min(p0, glm::min(p1, glm::min(p2, glm::min(p3, glm::min(p4, glm::min(p5, glm::min(p6, p7)))))));
+			box.max = glm::max(p0, glm::max(p1, glm::max(p2, glm::max(p3, glm::max(p4, glm::max(p5, glm::max(p6, p7)))))));
+			box.centroid = Centroid(box.min, box.max);
+		}
+
+		else if (geom.type == TRIANGLE) {
+			// Convert to world first
+			glm::vec3 p0 = glm::vec3(geom.transform * glm::vec4(geom.vert0, 1.f));
+			glm::vec3 p1 = glm::vec3(geom.transform * glm::vec4(geom.vert1, 1.f));
+			glm::vec3 p2 = glm::vec3(geom.transform * glm::vec4(geom.vert2, 1.f));
+			box.min = glm::min(p0, glm::min(p1, p2));
+			box.max = glm::max(p0, glm::max(p1, p2));
+			box.centroid = Centroid(box.min, box.max);
+		}
 
 		return box;
 	}
@@ -67,9 +79,12 @@ namespace BBox {
 	void createBBoxGeom(const BBox& bbox, Geom& bboxGeom) {
 		bboxGeom.type = CUBE;
 		bboxGeom.materialid = 0; // Don't care here
-		bboxGeom.translation = glm::vec3(0.f);
-		bboxGeom.rotation = glm::vec3(0.f);
-		bboxGeom.scale = glm::vec3(1.f);
+		//bboxGeom.translation = glm::vec3(0.f);
+		//bboxGeom.rotation = glm::vec3(0.f);
+		//bboxGeom.scale = glm::vec3(1.f);
+		bboxGeom.translation = bbox.centroid;
+		bboxGeom.rotation = glm::vec3();
+		bboxGeom.scale = bbox.max - bbox.min;
 		bboxGeom.transform = utilityCore::buildTransformationMatrix(
 			bboxGeom.translation, bboxGeom.rotation, bboxGeom.scale);
 		bboxGeom.inverseTransform = glm::inverse(bboxGeom.transform);
@@ -87,22 +102,22 @@ namespace BBox {
 		std::vector<glm::vec3>& bbox_vert_pos
 		)
 	{
-		//bbox_vert_pos.push_back(glm::vec3(.5f, .5f, .5f));
-		//bbox_vert_pos.push_back(glm::vec3(.5f, .5f, -.5f));
-		//bbox_vert_pos.push_back(glm::vec3(.5f, -.5f, .5f));
-		//bbox_vert_pos.push_back(glm::vec3(.5f, -.5f, -.5f));
-		//bbox_vert_pos.push_back(glm::vec3(-.5f, .5f, .5f));
-		//bbox_vert_pos.push_back(glm::vec3(-.5f, .5f, -.5f));
-		//bbox_vert_pos.push_back(glm::vec3(-.5f, -.5f, .5f));
-		//bbox_vert_pos.push_back(glm::vec3(-.5f, -.5f, -.5f));
-		bbox_vert_pos.push_back(glm::vec3(bbox.max.x, bbox.max.y, bbox.max.z));
-		bbox_vert_pos.push_back(glm::vec3(bbox.max.x, bbox.max.y, bbox.min.z));
-		bbox_vert_pos.push_back(glm::vec3(bbox.max.x, bbox.min.y, bbox.max.z));
-		bbox_vert_pos.push_back(glm::vec3(bbox.max.x, bbox.min.y, bbox.min.z));
-		bbox_vert_pos.push_back(glm::vec3(bbox.min.x, bbox.max.y, bbox.max.z));
-		bbox_vert_pos.push_back(glm::vec3(bbox.min.x, bbox.max.y, bbox.min.z));
-		bbox_vert_pos.push_back(glm::vec3(bbox.min.x, bbox.min.y, bbox.max.z));
-		bbox_vert_pos.push_back(glm::vec3(bbox.min.x, bbox.min.y, bbox.min.z));
+		bbox_vert_pos.push_back(glm::vec3(.5f, .5f, .5f));
+		bbox_vert_pos.push_back(glm::vec3(.5f, .5f, -.5f));
+		bbox_vert_pos.push_back(glm::vec3(.5f, -.5f, .5f));
+		bbox_vert_pos.push_back(glm::vec3(.5f, -.5f, -.5f));
+		bbox_vert_pos.push_back(glm::vec3(-.5f, .5f, .5f));
+		bbox_vert_pos.push_back(glm::vec3(-.5f, .5f, -.5f));
+		bbox_vert_pos.push_back(glm::vec3(-.5f, -.5f, .5f));
+		bbox_vert_pos.push_back(glm::vec3(-.5f, -.5f, -.5f));
+		//bbox_vert_pos.push_back(glm::vec3(bbox.max.x, bbox.max.y, bbox.max.z));
+		//bbox_vert_pos.push_back(glm::vec3(bbox.max.x, bbox.max.y, bbox.min.z));
+		//bbox_vert_pos.push_back(glm::vec3(bbox.max.x, bbox.min.y, bbox.max.z));
+		//bbox_vert_pos.push_back(glm::vec3(bbox.max.x, bbox.min.y, bbox.min.z));
+		//bbox_vert_pos.push_back(glm::vec3(bbox.min.x, bbox.max.y, bbox.max.z));
+		//bbox_vert_pos.push_back(glm::vec3(bbox.min.x, bbox.max.y, bbox.min.z));
+		//bbox_vert_pos.push_back(glm::vec3(bbox.min.x, bbox.min.y, bbox.max.z));
+		//bbox_vert_pos.push_back(glm::vec3(bbox.min.x, bbox.min.y, bbox.min.z));
 	}
 
 	void createBBoxVertexNormals(

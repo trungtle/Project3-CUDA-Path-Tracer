@@ -101,7 +101,7 @@ __host__ __device__ bool bboxIntersectionTest(Geom box, Ray r) {
 	q.origin = multiplyMV(box.inverseTransform, glm::vec4(r.origin, 1.0f));
 	q.direction = glm::normalize(multiplyMV(box.inverseTransform, glm::vec4(r.direction, 0.0f)));
 
-	bool outside = true;
+	bool hit = false;
 	float tmin = -1e38f;
 	float tmax = 1e38f;
 	for (int xyz = 0; xyz < 3; ++xyz) {
@@ -122,10 +122,10 @@ __host__ __device__ bool bboxIntersectionTest(Geom box, Ray r) {
 		}
 	}
 
-	if (tmax >= tmin && tmax > 0 && tmin <= 0) {
-		outside = false;
+	if (tmax >= tmin && tmax > 0) {
+		hit = true;
 	}
-	return outside;
+	return hit;
 }
 
 // CHECKITOUT

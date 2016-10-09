@@ -193,19 +193,24 @@ void mainLoop(Scene* scene) {
         string title = "CIS565 Path Tracer | " + utilityCore::convertIntToString(iteration) + " Iterations";
         glfwSetWindowTitle(window, title.c_str());
 
-		glUseProgram(passthroughProgram);
-		glActiveTexture(GL_TEXTURE0);
+		glClear(GL_COLOR_BUFFER_BIT);
+		if (scene->isVisualizationEnabled) {
+			glUseProgram(passthroughProgram);
+			glActiveTexture(GL_TEXTURE0);
+
+			glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
+			glBindTexture(GL_TEXTURE_2D, displayImage);
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
+			// VAO, shader program, and texture already bound
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+		}
 		
-    	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
-        glBindTexture(GL_TEXTURE_2D, displayImage);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-        glClear(GL_COLOR_BUFFER_BIT);
+		if (scene->isBVHEnabled) {
+			// Draw BVH on top
+			drawBVHRescursive(scene->state.camera, scene->root);
+		}
 
-        // VAO, shader program, and texture already bound
-        glDrawElements(GL_TRIANGLES, 6,  GL_UNSIGNED_SHORT, 0);
-
-		// Draw BVH on top
-		drawBVHRescursive(scene->state.camera, scene->root);
 
         glfwSwapBuffers(window);
     }

@@ -27,7 +27,11 @@ public:
     ~Scene();
 	int initBVH();
 
+	bool isBVHEnabled;
+	bool isVisualizationEnabled;
+
 	BVHNode* root;
+	std::vector<BVHNodeDev> bvhNodes;
     std::vector<Geom> geoms;
     std::vector<Material> materials;
     RenderState state;

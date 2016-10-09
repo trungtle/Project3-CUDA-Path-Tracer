@@ -76,6 +76,7 @@ static PathSegment * dev_paths = NULL;
 static ShadeableIntersection * dev_intersections = NULL;
 // TODO: static variables for device memory, any extra info you need, etc
 // ...
+static BVHNodeDev * dev_bvhNodes = NULL;
 
 void pathtraceInit(Scene *scene) {
     hst_scene = scene;
@@ -98,6 +99,9 @@ void pathtraceInit(Scene *scene) {
   	cudaMemset(dev_intersections, 0, pixelcount * sizeof(ShadeableIntersection));
 
     // TODO: initialize any extra device memeory you need
+	int bvhNodesCount = hst_scene->bvhNodes.size();
+	cudaMalloc(&dev_bvhNodes, bvhNodesCount * sizeof(BVHNodeDev));
+	cudaMemcpy(dev_bvhNodes, hst_scene->bvhNodes.data(), bvhNodesCount * sizeof(BVHNodeDev), cudaMemcpyHostToDevice);
 
     checkCUDAError("pathtraceInit");
 }
@@ -113,7 +117,7 @@ void pathtraceFree() {
   	cudaFree(dev_materials);
   	cudaFree(dev_intersections);
     // TODO: clean up any extra device memory you created
-
+	cudaFree(dev_bvhNodes);
     checkCUDAError("pathtraceFree");
 }
 
@@ -192,8 +196,10 @@ __global__ void traverseBVH(
 	int depth
 	, int num_paths
 	, PathSegment * pathSegments
-	, BVHNode* root
+	, int num_bvhNodes
+	, BVHNodeDev* bvhNodes
 	, int geoms_size
+	, Geom * geoms
 	, ShadeableIntersection * intersections
 	)
 {
@@ -201,7 +207,6 @@ __global__ void traverseBVH(
 
 	if (path_index < num_paths)
 	{
-
 		PathSegment pathSegment = pathSegments[path_index];
 		float t;
 		glm::vec3 intersect_point;
@@ -212,11 +217,12 @@ __global__ void traverseBVH(
 		glm::vec3 tmp_normal;
 		Geom* hit_geom = nullptr;
 
-		BVHNode* current = root->nearChild;
+		BVHNodeDev current = bvhNodes[0];
 		EBVHTransition transition = EBVHTransition::FromParent;
 
 		bool isIterating = true;
-		while (isIterating) {
+		while (isIterating && depth < 10) {
+
 			// States (reproduced here from Stack-less BVH Traversal paper [Hapala1 el at. 2011])
 			// Link: https://graphics.cg.uni-saarland.de/fileadmin/cguds/papers/2011/hapala_sccg2011/hapala_sccg2011.pdf
 			switch (transition) {
@@ -228,18 +234,18 @@ __global__ void traverseBVH(
 				// or its parent(if current was farChild).
 				//
 			case EBVHTransition::FromChild:
-				if (current == root) {
+				if (current.idx == 0) {
 					// Current has reached root
 					isIterating = false;
 				}
-				else if (current == current->parent->nearChild) {
+				else if (current.idx == bvhNodes[current.parentIdx].nearChildIdx) {
 					// Current is near child, so transition to far child
-					current = current->parent->farChild;
+					current = bvhNodes[bvhNodes[current.parentIdx].farChildIdx];
 					transition = EBVHTransition::FromSibling;
 				}
 				else {
-					// Current is far child
-					current = current->parent;
+					// Current is far child, go back to parent
+					current = bvhNodes[current.parentIdx];
 					transition = EBVHTransition::FromChild;
 				}
 				break;
@@ -256,9 +262,9 @@ __global__ void traverseBVH(
 
 			case EBVHTransition::FromSibling:
 
-				if (current->nearChild == nullptr && current->farChild == nullptr) {
+				if (current.geomIdx != -1) {
 					// Leaf node
-					t = computeIntersection(pathSegment, *current->geom, tmp_intersect, tmp_normal);
+					t = computeIntersection(pathSegment, geoms[current.geomIdx], tmp_intersect, tmp_normal);
 					// Compute the minimum t from the intersection tests to determine what
 					// scene geometry object was hit first.
 					if (t > 0.0f && t_min > t)
@@ -266,23 +272,29 @@ __global__ void traverseBVH(
 						t_min = t;
 						intersect_point = tmp_intersect;
 						normal = tmp_normal;
-						hit_geom = current->geom;
+						hit_geom = &(geoms[current.geomIdx]);
 					}
 
-					current = current->parent;
+					current = bvhNodes[current.parentIdx];
 					transition = EBVHTransition::FromChild;
 				}
 				else {
-					// When this isn't a leaf node, geom stores the bbox transformation
-					bool isOutside = bboxIntersectionTest(*current->geom, pathSegments[path_index].ray);
-					if (isOutside) {
+					// When this isn't a leaf node, check bbox intersection
+					bool hit = bboxIntersectionTest(current.bboxGeom, pathSegments[path_index].ray);
+					if (!hit) {
 						// Missed, go back up to parent
-						current = current->parent;
-						transition = EBVHTransition::FromChild;
+
+						if (current.idx == 0) {
+							// Current has reached root
+							isIterating = false;
+						} else {
+							current = bvhNodes[current.parentIdx];
+							transition = EBVHTransition::FromChild;
+						}
 					}
 					else {
-						// Hit, enter its subtree
-						current = current->nearChild;
+						// Hit, enter its subtree (near child)
+						current = bvhNodes[current.nearChildIdx];
 						transition = EBVHTransition::FromParent;
 					}
 				}
@@ -295,9 +307,9 @@ __global__ void traverseBVH(
 				// farChild child.
 
 			case EBVHTransition::FromParent:
-				if (current->nearChild == nullptr && current->farChild == nullptr) {
+				if (current.geomIdx != -1) {
 					// Leaf node
-					t = computeIntersection(pathSegment, *current->geom, tmp_intersect, tmp_normal);
+					t = computeIntersection(pathSegment, geoms[current.geomIdx], tmp_intersect, tmp_normal);
 					// Compute the minimum t from the intersection tests to determine what
 					// scene geometry object was hit first.
 					if (t > 0.0f && t_min > t)
@@ -305,23 +317,34 @@ __global__ void traverseBVH(
 						t_min = t;
 						intersect_point = tmp_intersect;
 						normal = tmp_normal;
-						hit_geom = current->geom;
+						hit_geom = &(geoms[current.geomIdx]);
 					}
 
-					current = current->parent->farChild;
-					transition = EBVHTransition::FromSibling;
+					if (current.idx == 0) {
+						// Current has reached root
+						isIterating = false;
+					} else {
+						// Go to far sibling
+						current = bvhNodes[bvhNodes[current.parentIdx].farChildIdx];
+						transition = EBVHTransition::FromSibling;
+					}
 				}
 				else {
-					// When this isn't a leaf node, geom stores the bbox transformation
-					bool isOutside = bboxIntersectionTest(*current->geom, pathSegments[path_index].ray);
-					if (isOutside) {
-						// Missed, go back up to parent
-						current = current->parent->farChild;
-						transition = EBVHTransition::FromSibling;
+					// When this isn't a leaf node, check bbox intersection
+					bool hit = bboxIntersectionTest(current.bboxGeom, pathSegments[path_index].ray);
+					if (!hit) {
+						// Missed, go to far sibling
+						if (current.idx == 0) {
+							// Current has reached root
+							isIterating = false;
+						} else {
+							current = bvhNodes[bvhNodes[current.parentIdx].farChildIdx];
+							transition = EBVHTransition::FromSibling;
+						}
 					}
 					else {
 						// Hit, enter its subtree
-						current = current->parent->nearChild;
+						current = bvhNodes[current.nearChildIdx];
 						transition = EBVHTransition::FromParent;
 					}
 				}
@@ -522,7 +545,7 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
     //     to the shader, then generate a new ray to continue the ray path.
     //     We recommend just updating the ray's PathSegment in place.
     //     Note that this step may come before or after stream compaction,
-    //     since some shaders you write may also cause a path to terminate.
+    //     since some shaders you write may also cause a tpath to terminate.
     // * Finally, add this iteration's results to the image. This has been done
     //   for you.
 
@@ -548,14 +571,28 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 
 		// tracing
 		dim3 numblocksPathSegmentTracing = (num_paths + blockSize1d - 1) / blockSize1d;
-		computeIntersections <<<numblocksPathSegmentTracing, blockSize1d>>> (
-			depth
-			, num_paths
-			, dev_paths
-			, dev_geoms
-			, hst_scene->geoms.size()
-			, dev_intersections
-			);
+		
+		if (hst_scene->isBVHEnabled) {
+			traverseBVH << <numblocksPathSegmentTracing, blockSize1d >> > (
+				depth
+				, num_paths
+				, dev_paths
+				, hst_scene->bvhNodes.size()
+				, dev_bvhNodes
+				, hst_scene->geoms.size()
+				, dev_geoms
+				, dev_intersections
+				);
+		} else {
+			computeIntersections << <numblocksPathSegmentTracing, blockSize1d >> > (
+				depth
+				, num_paths
+				, dev_paths
+				, dev_geoms
+				, hst_scene->geoms.size()
+				, dev_intersections
+				);
+		}
 		checkCUDAError("trace one bounce");
 		cudaDeviceSynchronize();
 		depth++;

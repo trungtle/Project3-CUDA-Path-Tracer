@@ -3,11 +3,12 @@
 
 void populateLeafBVHNode(
 	BVHNode* node,
-	Geom* geom
+	int geomIdx,
+	const Geom& geom
 	)
 {
-	node->geom = geom;
-	node->bbox = BBox::BBoxFromGeom(*geom);
+	node->geomIdx = geomIdx;
+	node->bbox = BBox::BBoxFromGeom(geom);
 	BBox::createBBoxGeom(node->bbox, node->bboxGeom);
 	BBox::createBBoxVAO(node->bbox, &node->bboxVao);
 	node->nearChild = nullptr;
@@ -40,7 +41,7 @@ BVHNode* buildBVHTreeRecursive(std::vector<BVHNode*>& leaves, int first, int las
 	for (auto i = first; i <= last; ++i) {
 		node->bbox = BBoxUnion(leaves.at(i)->bbox, node->bbox);
 	}
-	node->geom = new Geom();
+	node->geomIdx = -1;
 	createBBoxGeom(node->bbox, node->bboxGeom);
 	BBox::createBBoxVAO(node->bbox, &node->bboxVao);
 
@@ -61,6 +62,7 @@ BVHNode* buildBVHTreeRecursive(std::vector<BVHNode*>& leaves, int first, int las
 
 }
 
+
 void destroyBVHTreeRecursive(BVHNode* node) {
 	
 	if (isLeafBVHNode(node)) {
@@ -73,3 +75,51 @@ void destroyBVHTreeRecursive(BVHNode* node) {
 	delete node;
 	node == nullptr;
 }
+
+void flattenBHVTreeRecursive(
+	std::vector<BVHNodeDev>& bvhNodes,
+	BVHNode* node,
+	int idx,
+	int parentIdx) 
+{
+	if (node == nullptr) {
+		return;
+	}
+
+	BVHNodeDev bvhNodeDev;
+	bvhNodeDev.splitAxis = node->splitAxis;
+	bvhNodeDev.geomIdx = node->geomIdx;
+	bvhNodeDev.bboxVao = node->bboxVao;
+	bvhNodeDev.bboxGeom = node->bboxGeom;
+	bvhNodeDev.bbox = node->bbox;
+	bvhNodeDev.idx = idx;
+	bvhNodeDev.nearChildIdx = idx * 2 + 1;
+	bvhNodeDev.farChildIdx = idx * 2 + 2;
+	bvhNodeDev.parentIdx = parentIdx;
+	bvhNodes.push_back(bvhNodeDev);
+
+	// Update pointers
+	parentIdx = idx;
+	flattenBHVTreeRecursive(bvhNodes, node->nearChild, getNearChildIdx(idx), parentIdx);
+	flattenBHVTreeRecursive(bvhNodes, node->farChild, getFarChildIdx(idx), parentIdx);
+}
+
+void flattenBHVTree(std::vector<BVHNodeDev>& bvhNodes, BVHNode* root) {
+	
+	BVHNode* current = root;
+	int idx = 0;
+	int parentIdx = -1;
+	flattenBHVTreeRecursive(bvhNodes, root, idx, parentIdx);
+}
+
+__host__ __device__
+int getNearChildIdx(int idx) {
+	return idx * 2 + 1;
+}
+
+__host__ __device__
+int getFarChildIdx(int idx) {
+	return idx * 2 + 2;
+}
+
+

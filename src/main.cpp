@@ -63,7 +63,9 @@ int main(int argc, char** argv) {
 	init();
 
 	// Initialize the BVH structure
-	scene->initBVH();
+	if (scene->isBVHEnabled) {
+		scene->initBVH();
+	}
 
     // GLFW main loop
 	mainLoop(scene);
@@ -98,8 +100,10 @@ void runCuda() {
     if (camchanged) {
         iteration = 0;
         Camera &cam = renderState->camera;
-		cam.RotateAboutRight(phi);
-		cam.RotateAboutUp(theta);
+		//cam.RotateAboutRight(phi);
+		//cam.RotateAboutUp(theta);
+		cam.TranslateAlongRight(phi);
+		cam.TranslateAlongUp(theta);
 		cam.Zoom(zoom);
 		zoom = 0;
 		theta = 0;
@@ -183,21 +187,21 @@ void mousePositionCallback(GLFWwindow* window, double xpos, double ypos) {
     camchanged = true;
   }
   else if (rightMousePressed) {
-    zoom += (ypos - lastY) / height;
+    zoom += (ypos - lastY) * 10.0f / height;
     camchanged = true;
   }
   else if (middleMousePressed) {
     renderState = &scene->state;
     Camera &cam = renderState->camera;
     glm::vec3 forward = cam.forward;
-    forward.y = 0.0f;
-    forward = glm::normalize(forward);
+    //forward.y = 0.0f;
+    //forward = glm::normalize(forward);
     glm::vec3 right = cam.right;
-    right.y = 0.0f;
-    right = glm::normalize(right);
+    //right.y = 0.0f;
+    //right = glm::normalize(right);
 
     cam.lookAt -= (float) (xpos - lastX) * right * 0.01f;
-    cam.lookAt += (float) (ypos - lastY) * forward * 0.01f;
+    cam.lookAt += (float) (ypos - lastY) * cam.up * 0.01f;
     camchanged = true;
   }
   lastX = xpos;
