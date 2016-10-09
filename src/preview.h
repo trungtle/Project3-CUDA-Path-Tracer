@@ -4,6 +4,6 @@ extern GLuint pbo;
 
 std::string currentTimeString();
 bool init();
-void mainLoop();
+void mainLoop(Scene* scene);
 
 

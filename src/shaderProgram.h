@@ -1,15 +1,10 @@
 #pragma once
 
-#include "main.h"
+/*
+* Adpated from OpenGL Tutorial: http://www.opengl-tutorial.org/beginners-tutorials/tutorial-2-the-first-triangle/
+*/
 
-struct GeomVAO {
-	GLuint vao;
-	GLuint posBuf;
-	GLuint norBuf;
-	GLuint colBuf;
-	GLuint idxBuf;
-	uint8_t elementCount;
-};
+#include "main.h"
 
 class ShaderProgram
 {
@@ -23,7 +18,7 @@ public:
 	virtual void DrawBBox(
 		const Camera&,
 		const Geom&,
-		const GeomVAO&
+		const BBoxVAO&
 		) const;
 
 	virtual void CleanUp();

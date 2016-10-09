@@ -67,12 +67,14 @@ int main(int argc, char** argv) {
     theta = glm::acos(glm::dot(glm::normalize(viewZY), glm::vec3(0, 1, 0)));
     ogLookAt = cam.lookAt;
     zoom = glm::length(cam.position - ogLookAt);
+	// Initialize CUDA and GL components
+	init();
 
-    // Initialize CUDA and GL components
-    init();
+	// Initialize the BVH structure
+	scene->initBVH();
 
     // GLFW main loop
-    mainLoop();
+	mainLoop(scene);
 
     return 0;
 }

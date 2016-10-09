@@ -1,3 +1,7 @@
+/*
+ * Adpated from OpenGL Tutorial: http://www.opengl-tutorial.org/beginners-tutorials/tutorial-2-the-first-triangle/
+ */
+
 #include "shaderProgram.h"
 
 ShaderProgram::ShaderProgram(
@@ -5,23 +9,17 @@ ShaderProgram::ShaderProgram(
 	const char* fragFilePath
 	)
 {
-	const char *attribLocations[] = { "Position", "Texcoords" };
-	m_programID = glslUtility::createProgram("E:\CODES\Penn\CIS565\Project3-CUDA-Path-Tracer\src\glsl\simple.vert", "E:\CODES\Penn\CIS565\Project3-CUDA-Path-Tracer\src\glsl\simple.frag", attribLocations, 2);
+	m_programID = glslUtility::LoadShaders(vertFilePath, fragFilePath);
 	
 	m_unifModel = glGetUniformLocation(m_programID, "u_model");
 	m_unifViewProj = glGetUniformLocation(m_programID, "u_viewProj");
-
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
 }
 
 void
 ShaderProgram::DrawBBox(
 	const Camera& camera,
 	const Geom& geom,
-	const GeomVAO& geomVao
+	const BBoxVAO& geomVao
 	) const
 {
 	glUseProgram(m_programID);
@@ -48,13 +46,11 @@ ShaderProgram::DrawBBox(
 
 	if (m_unifViewProj != -1) {
 
-		glm::mat4 perspective = glm::perspective(camera.fov.y, static_cast<float>(camera.resolution.x) / static_cast<float>(camera.resolution.y), 0.001f, 1000.f);
-
 		glUniformMatrix4fv(
 			m_unifViewProj,
 			1,
 			GL_FALSE,
-			&(perspective)[0][0]
+			&camera.GetViewProj()[0][0]
 			);
 	}
 	// Render

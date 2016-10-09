@@ -8,27 +8,12 @@ void populateLeafBVHNode(
 {
 	node->geom = geom;
 	node->bbox = BBox::BBoxFromGeom(*geom);
+	BBox::createBBoxGeom(node->bbox, node->bboxGeom);
+	BBox::createBBoxVAO(node->bbox, &node->bboxVao);
 	node->nearChild = nullptr;
 	node->farChild = nullptr;
 	node->parent = nullptr;
-}
-
-void populateInteriorBVHNode(
-	BVHNode* node,
-	Geom* geom,
-	BBox::BBox& bbox,
-	BVHNode* nearChild,
-	BVHNode* farChild,
-	BVHNode* parent,
-	BBox::EAxis splitAxis
-	)
-{
-	node->geom = geom;
-	node->bbox = bbox;
-	node->nearChild = nearChild;
-	node->farChild = farChild;
-	node->parent = parent;
-	node->splitAxis = splitAxis;
+	node->splitAxis = BBox::EAxis::X;
 }
 
 bool isLeafBVHNode(const BVHNode* node) 
@@ -52,10 +37,13 @@ BVHNode* buildBVHTreeRecursive(std::vector<BVHNode*>& leaves, int first, int las
 	auto dim = static_cast<int>((BBoxMaximumExtent(node->bbox)));
 
 	// Compute the bounds of all geometries within this subtree
-	for (auto i = first; i < last; ++i) {
+	for (auto i = first; i <= last; ++i) {
 		node->bbox = BBoxUnion(leaves.at(i)->bbox, node->bbox);
 	}
-		 
+	node->geom = new Geom();
+	createBBoxGeom(node->bbox, node->bboxGeom);
+	BBox::createBBoxVAO(node->bbox, &node->bboxVao);
+
 	// Partial sorting along the maximum extent and split at the middle
 	int mid = (first + last) / 2;
 	std::nth_element(&leaves[first], &leaves[mid], &leaves[last], CompareCentroid(dim));
@@ -71,4 +59,17 @@ BVHNode* buildBVHTreeRecursive(std::vector<BVHNode*>& leaves, int first, int las
 	node->farChild->splitAxis = static_cast<BBox::EAxis>(dim);
 	return node;
 
+}
+
+void destroyBVHTreeRecursive(BVHNode* node) {
+	
+	if (isLeafBVHNode(node)) {
+		delete node;
+		node = nullptr;
+	}
+
+	destroyBVHTreeRecursive(node->nearChild);
+	destroyBVHTreeRecursive(node->farChild);
+	delete node;
+	node == nullptr;
 }

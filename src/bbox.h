@@ -1,7 +1,20 @@
 #pragma once
 
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+
 #include "sceneStructs.h"
 #include "glm/glm.hpp"
+
+
+struct BBoxVAO {
+	GLuint vao;
+	GLuint posBuf;
+	GLuint norBuf;
+	GLuint colBuf;
+	GLuint idxBuf;
+	uint8_t elementCount;
+};
 
 namespace BBox {
 
@@ -47,6 +60,8 @@ namespace BBox {
 	 */
 	EAxis BBoxMaximumExtent(const BBox& bbox);
 
-	void initBBoxVAO();
+	void createBBoxGeom(const BBox& bbox, Geom& bboxGeom);
 
+	void createBBoxVAO(const BBox& bbox, BBoxVAO* bboxVao);
+	void deleteBBoxVAO(BBoxVAO& bboxVao);
 }

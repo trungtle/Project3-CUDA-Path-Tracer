@@ -2,6 +2,7 @@
 #include <ctime>
 #include "main.h"
 #include "preview.h"
+#include "shaderProgram.h"
 
 GLuint positionLocation = 0;
 GLuint texcoordsLocation = 1;
@@ -9,6 +10,8 @@ GLuint pbo;
 GLuint displayImage;
 
 GLFWwindow *window;
+GLuint passthroughProgram;
+ShaderProgram* shaderProgram;
 
 std::string currentTimeString() {
     time_t now;
@@ -160,15 +163,29 @@ bool init() {
     initTextures();
     initCuda();
     initPBO();
-    GLuint passthroughProgram = initShader();
+    passthroughProgram = initShader();
 
     glUseProgram(passthroughProgram);
     glActiveTexture(GL_TEXTURE0);
 
+	shaderProgram = new ShaderProgram("E:/CODES/Penn/CIS565/Project3-CUDA-Path-Tracer/src/glsl/simple.vert", "E:/CODES/Penn/CIS565/Project3-CUDA-Path-Tracer/src/glsl/simple.frag");
+
     return true;
 }
 
-void mainLoop() {
+void drawBVHRescursive(const Camera& camera, BVHNode* node) {
+	
+	// Draw bbox
+	shaderProgram->DrawBBox(camera, node->bboxGeom, node->bboxVao);
+	if (isLeafBVHNode(node)) {
+		return;
+	}
+
+	drawBVHRescursive(camera, node->nearChild);
+	drawBVHRescursive(camera, node->farChild);
+}
+
+void mainLoop(Scene* scene) {
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         runCuda();
@@ -176,15 +193,25 @@ void mainLoop() {
         string title = "CIS565 Path Tracer | " + utilityCore::convertIntToString(iteration) + " Iterations";
         glfwSetWindowTitle(window, title.c_str());
 
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
+		glUseProgram(passthroughProgram);
+		glActiveTexture(GL_TEXTURE0);
+		
+    	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
         glBindTexture(GL_TEXTURE_2D, displayImage);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
         glClear(GL_COLOR_BUFFER_BIT);
 
         // VAO, shader program, and texture already bound
         glDrawElements(GL_TRIANGLES, 6,  GL_UNSIGNED_SHORT, 0);
+
+		// Draw BVH on top
+		drawBVHRescursive(scene->state.camera, scene->root);
+
         glfwSwapBuffers(window);
     }
+
+	shaderProgram->CleanUp();
+	delete shaderProgram;
     glfwDestroyWindow(window);
     glfwTerminate();
 }

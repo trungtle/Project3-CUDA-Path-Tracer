@@ -2,6 +2,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include "shaderProgram.h"
+#include <glm/gtc/matrix_inverse.inl>
 
 namespace BBox {
 
@@ -22,7 +23,7 @@ namespace BBox {
 		ret.max.x = glm::max(a.max.x, b.max.x);
 		ret.max.y = glm::max(a.max.y, b.max.y);
 		ret.max.z = glm::max(a.max.z, b.max.z);
-		ret.min.x = glm::min(b.min.x, b.min.x);
+		ret.min.x = glm::min(a.min.x, b.min.x);
 		ret.min.y = glm::min(a.min.y, b.min.y);
 		ret.min.z = glm::min(a.min.z, b.min.z);
 		ret.centroid = Centroid(ret.max, ret.min);
@@ -63,6 +64,19 @@ namespace BBox {
 		}
 	}
 
+	void createBBoxGeom(const BBox& bbox, Geom& bboxGeom) {
+		bboxGeom.type = CUBE;
+		bboxGeom.materialid = 0; // Don't care here
+		bboxGeom.translation = glm::vec3(0.f);
+		bboxGeom.rotation = glm::vec3(0.f);
+		bboxGeom.scale = glm::vec3(1.f);
+		bboxGeom.transform = utilityCore::buildTransformationMatrix(
+			bboxGeom.translation, bboxGeom.rotation, bboxGeom.scale);
+		bboxGeom.inverseTransform = glm::inverse(bboxGeom.transform);
+		bboxGeom.invTranspose = glm::inverseTranspose(bboxGeom.transform);
+	}
+
+
 	// ============== OpenGL Specifics ===================== //
 
 	const int BBOX_IDX_COUNT = 24;
@@ -73,6 +87,14 @@ namespace BBox {
 		std::vector<glm::vec3>& bbox_vert_pos
 		)
 	{
+		//bbox_vert_pos.push_back(glm::vec3(.5f, .5f, .5f));
+		//bbox_vert_pos.push_back(glm::vec3(.5f, .5f, -.5f));
+		//bbox_vert_pos.push_back(glm::vec3(.5f, -.5f, .5f));
+		//bbox_vert_pos.push_back(glm::vec3(.5f, -.5f, -.5f));
+		//bbox_vert_pos.push_back(glm::vec3(-.5f, .5f, .5f));
+		//bbox_vert_pos.push_back(glm::vec3(-.5f, .5f, -.5f));
+		//bbox_vert_pos.push_back(glm::vec3(-.5f, -.5f, .5f));
+		//bbox_vert_pos.push_back(glm::vec3(-.5f, -.5f, -.5f));
 		bbox_vert_pos.push_back(glm::vec3(bbox.max.x, bbox.max.y, bbox.max.z));
 		bbox_vert_pos.push_back(glm::vec3(bbox.max.x, bbox.max.y, bbox.min.z));
 		bbox_vert_pos.push_back(glm::vec3(bbox.max.x, bbox.min.y, bbox.max.z));
@@ -104,36 +126,34 @@ namespace BBox {
 
 	void createBBoxIndices(std::vector<GLushort>& bbox_idx)
 	{
-		int idx = 0;
-
-		bbox_idx[idx++] = 0;
-		bbox_idx[idx++] = 1;
-		bbox_idx[idx++] = 1;
-		bbox_idx[idx++] = 3;
-		bbox_idx[idx++] = 3;
-		bbox_idx[idx++] = 2;
-		bbox_idx[idx++] = 2;
-		bbox_idx[idx++] = 0;
-		bbox_idx[idx++] = 0;
-		bbox_idx[idx++] = 4;
-		bbox_idx[idx++] = 4;
-		bbox_idx[idx++] = 6;
-		bbox_idx[idx++] = 6;
-		bbox_idx[idx++] = 2;
-		bbox_idx[idx++] = 3;
-		bbox_idx[idx++] = 7;
-		bbox_idx[idx++] = 7;
-		bbox_idx[idx++] = 6;
-		bbox_idx[idx++] = 1;
-		bbox_idx[idx++] = 5;
-		bbox_idx[idx++] = 5;
-		bbox_idx[idx++] = 4;
-		bbox_idx[idx++] = 5;
-		bbox_idx[idx++] = 7;
+		bbox_idx.push_back(0);
+		bbox_idx.push_back(1);
+		bbox_idx.push_back(1);
+		bbox_idx.push_back(3);
+		bbox_idx.push_back(3);
+		bbox_idx.push_back(2);
+		bbox_idx.push_back(2);
+		bbox_idx.push_back(0);
+		bbox_idx.push_back(0);
+		bbox_idx.push_back(4);
+		bbox_idx.push_back(4);
+		bbox_idx.push_back(6);
+		bbox_idx.push_back(6);
+		bbox_idx.push_back(2);
+		bbox_idx.push_back(3);
+		bbox_idx.push_back(7);
+		bbox_idx.push_back(7);
+		bbox_idx.push_back(6);
+		bbox_idx.push_back(1);
+		bbox_idx.push_back(5);
+		bbox_idx.push_back(5);
+		bbox_idx.push_back(4);
+		bbox_idx.push_back(5);
+		bbox_idx.push_back(7);
 	}
 
 
-	void initBBoxVAO(const BBox& bbox, GeomVAO& bboxVao)
+	void createBBoxVAO(const BBox& bbox, BBoxVAO* bboxVao)
 	{
 		std::vector<GLushort> bbox_idx;
 		std::vector<glm::vec3> bbox_vert_pos;
@@ -165,12 +185,17 @@ namespace BBox {
 			);
 
 		// Populate geom vao
-		bboxVao.vao = vao;
-		bboxVao.posBuf = vertexBufferObjID[0];
-		bboxVao.norBuf = vertexBufferObjID[1];
-		bboxVao.colBuf = vertexBufferObjID[2];
-		bboxVao.idxBuf = vertexBufferObjID[3];
-		bboxVao.elementCount = BBOX_IDX_COUNT;
+		bboxVao->vao = vao;
+		bboxVao->posBuf = vertexBufferObjID[0];
+		bboxVao->norBuf = vertexBufferObjID[1];
+		bboxVao->colBuf = vertexBufferObjID[2];
+		bboxVao->idxBuf = vertexBufferObjID[3];
+		bboxVao->elementCount = BBOX_IDX_COUNT;
 	}
 
+	void deleteBBoxVAO(BBoxVAO& bboxVao) {
+		const GLuint buffers[] = { bboxVao.posBuf, bboxVao.norBuf, bboxVao.colBuf, bboxVao.colBuf };
+		glDeleteBuffers(4, buffers);
+		glDeleteVertexArrays(1, &bboxVao.vao);
+	}
 }

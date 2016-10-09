@@ -10,8 +10,12 @@
 namespace glslUtility {
 
 GLuint createDefaultProgram(const char *attributeLocations[], GLuint numberOfLocations);
-GLuint createProgram(const char *vertexShaderPath, const char *fragmentShaderPath,
-	const char *attributeLocations[], GLuint numberOfLocations);
+GLuint createProgram(const char *vertexShaderPath, const char *fragmentShaderPath);
+
+GLuint CreateShader(const char* filepath, const GLenum shaderType);
+GLuint LinkProgram(GLuint vertexShaderID, GLuint fragmentShaderID);
+GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path);
+
 }
 
 #endif

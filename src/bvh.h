@@ -9,22 +9,14 @@ typedef enum {
 
 struct BVHNode {
 	Geom* geom; // When this isn't a leaf node, geom contains the bbox shape, which is a cube
+	Geom bboxGeom; // vao details for bounding box
+	BBoxVAO bboxVao; // vao details for bounding box
 	BBox:: BBox bbox;
 	BVHNode* nearChild;
 	BVHNode* farChild;
 	BVHNode* parent;
 	BBox::EAxis splitAxis;
 };
-
-void populateInteriorBVHNode(
-	BVHNode* node,
-	Geom* geom,
-	BBox::BBox& bbox,
-	BVHNode* nearChild,
-	BVHNode* farChild,
-	BVHNode* parent,
-	BBox::EAxis splitAxis
-	);
 
 void populateLeafBVHNode(
 	BVHNode* node,
@@ -44,3 +36,4 @@ struct CompareCentroid {
 };
 
 BVHNode* buildBVHTreeRecursive(std::vector<BVHNode*>& leaves, int first, int last);
+void destroyBVHTreeRecursive(BVHNode* node);

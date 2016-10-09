@@ -16,10 +16,11 @@ private:
     int loadMaterial(string materialid);
     int loadGeom(string objectid);
     int loadCamera();
-	int initBVH();
+	int destroyBVH();
 public:
     Scene(string filename);
     ~Scene();
+	int initBVH();
 
 	BVHNode* root;
     std::vector<Geom> geoms;
