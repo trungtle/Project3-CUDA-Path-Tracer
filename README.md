@@ -73,7 +73,9 @@ You can see the effect of different indices of refraction for each sphere.
 
 Light path segments that hit the light source or not hitting any objects are terminated by using stream compaction on the list of path segments. In this implementation, I used `thrust::partition` to sort the path segments that have bottomed to the right of the `dev_paths` array and those that are still bouncing to the left. At the end, all the pixel colors are computed during final gathering.
 
-[insert graph here]
+__[Analysis still required here]__
+
+I did a quick comparison between `glm::remove_if` and `glm::partition`, and on average the `glm::remove_if` takes ~1.206ms/bounce while `glm::partion` takes ~1.759ms/bounce.
 
 ## Arbitrary mesh loading and rendering
 
@@ -86,7 +88,7 @@ I also tried to use `glm::intersectRayTriangle` but encountered a CUDA kernel la
 ![Alt text](img/torus_colored.png)
 ![Alt text](img/wahoo_green.png)
 
-Here you can see Mario is semi-submerged in a water refractive material (look for the outlining) against a green background. [Source obj file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/obj/wahoo.obj).
+Here you can see Mario is semi-submerged in a water refractive material (look at the outlining of the Mario mesh where the water intersects with him) against a green background. [Source obj file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/obj/wahoo.obj).
 
 ## Hierarchical spatial datastructures
 
@@ -128,9 +130,7 @@ Torus in a cornel box scene - [scene file](https://github.com/trungtle/Project3-
 
 ![Alt text](img/torus_cornell_bvh.PNG)
 
-For comparison, the following chart displays the effect of having BVH for a large mesh (wahoo.obj). The BVH-enabled scene outperforms by __~10ms__ per interation.
-
-[insert table here]
+__[Analysis still required here]__
 
 This feature uses `BBox` class for axis-aligned bounding volumes, `BVHNode` class for BVH construction on CPU, and `BVHNodeDev` class for BVH iterative traversal on GPU using CUDA.
 
