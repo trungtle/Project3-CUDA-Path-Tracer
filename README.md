@@ -120,13 +120,16 @@ At each state, it can be determined where to transition for the next iteration. 
 
 Torus scene - [scene file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/one_light.txt), [obj file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/obj/catmark_torus_creases0.obj) - with BVH enabled:
 
-![Alt text](img/torus.png)
-![Alt text](img/torus_bvh.PNG)
+Torus colored              |  Torus BVH
+:-------------------------:|:-------------------------:
+![Alt text](img/torus.png)|![Alt text](img/torus_bvh.PNG)
+
 
 Cornell box scene - [scene file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/cornell.txt) - with BVH enabled:
 
-![Alt text](img/cornell_box_diffuse.png)
-![Alt text](img/cornell_box_bvh.PNG)
+Cornell box colored        | Cornell box BHV
+:-------------------------:|:-------------------------:
+![Alt text](img/cornell_box_diffuse.png)|![Alt text](img/cornell_box_bvh.PNG)
 ![Alt text](img/bvh.gif)
 
 Torus in a cornel box scene - [scene file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/torus.txt), [obj file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/obj/catmark_torus_creases0.obj) - with BVH enabled:
