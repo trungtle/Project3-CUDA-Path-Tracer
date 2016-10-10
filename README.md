@@ -71,6 +71,8 @@ There are only three traversal states that a node can be entered:
 2. From its sibling (from nearChild to farChild)
 3. From its children (out from farChild)
 
+I constructed the BVH tree in 2 steps: built the tree recursively, then flattened the structure. This has to be done so that debugging would have been easier to verify the correctness of the structure.
+
 Uses shared memory to store BVH stack
 
 [Stack-less BVH traversal](https://graphics.cg.uni-saarland.de/fileadmin/cguds/papers/2011/hapala_sccg2011/hapala_sccg2011.pdf)
