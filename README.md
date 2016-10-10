@@ -73,9 +73,21 @@ You can see the effect of different indices of refraction for each sphere.
 
 Light path segments that hit the light source or not hitting any objects are terminated by using stream compaction on the list of path segments. In this implementation, I used `thrust::partition` to sort the path segments that have bottomed to the right of the `dev_paths` array and those that are still bouncing to the left. At the end, all the pixel colors are computed during final gathering.
 
-__[Analysis still required here]__
+Stream compaction definitely increased performance for my scene. For larger resolution, the stream compaction is even more effective since there are a larger percentage of paths we don't have to compute for its bouncing segments.
 
-I did a quick comparison between `glm::remove_if` and `glm::partition`, and on average the `glm::remove_if` takes ~1.206ms/bounce while `glm::partion` takes ~1.759ms/bounce.
+__800x800 scene with 8 bounces__
+
+|With stream compaction| Without stream compaction|
+|---|---|
+|11.66862588|16.9580651|
+
+__1600x900 scene with 8 bounces__
+
+|With stream compaction| Without stream compaction|
+|---|---|
+|15.56504463|36.99880862|
+
+I also did a quick comparison between `glm::remove_if` and `glm::partition`, and on average the `glm::remove_if` takes ~1.206ms/bounce while `glm::partion` takes ~1.759ms/bounce.
 
 ## Arbitrary mesh loading and rendering
 
@@ -110,6 +122,7 @@ For this stack-less traversal to work, the BVH needs to be constructed with the 
 I constructed the BVH tree in 2 steps: built the tree recursively with `BVHNode*`, then flattened the structure into a `BVHNodeDev` data array to feed into a kernel launch for parallel processing. This was done to make debugging easier.
 
 With the parent's pointers, now we can iterate through the BVH structure using simple state logic. There are only three traversal states that a node can be entered:
+
 1. From its parent
 2. From its sibling (from nearChild to farChild)
 3. From its children (out from farChild)
@@ -136,7 +149,13 @@ Torus in a cornel box scene - [scene file](https://github.com/trungtle/Project3-
 
 ![Alt text](img/torus_cornell_bvh.PNG)
 
-__[Analysis still required here]__
+Even with BVH enabled, the scene however is still taking too long. For the Mario model with __2835 vertices__ and __2979__ normals:
+
+|       |With BVH | Without BVH |
+|-----|------|----|
+|Average|320.757ms|284.9704822ms|
+
+My implementation for `traverseBVH` still uses too many branching for each state logic. That means every warps still have to execute all the cases when there is a large divergence when traversing through each branch. This in fact isn't quite an efficient of BVH stack-less traversal. There are some common logic that could be shared between each logic state that can greatly reduce the branch divergence. Additionally, my `BVHNodeDev` currently still stores quite a few extra information that could be packed more efficiently to save memory for each thread.
 
 This feature uses `BBox` class for axis-aligned bounding volumes, `BVHNode` class for BVH construction on CPU, and `BVHNodeDev` class for BVH iterative traversal on GPU using CUDA.
 
