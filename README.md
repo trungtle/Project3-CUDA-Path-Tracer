@@ -46,7 +46,7 @@ In this project, I implemented on top of the provided CUDA started code a fully 
 
 Diffuse shading is computed by bouncing the next path segment from a diffuse surface with a cosine-weighted random ray direction. The color of the bounced ray is multiplied with the original color using Lambert's law according to the [rendering equation](https://en.wikipedia.org/wiki/Rendering_equation).
 
-![Alt text](img/cornell_box.png)
+![Alt text](img/cornell_box_diffuse.png)
 
 ### Specular reflection
 
@@ -133,9 +133,9 @@ This feature uses `BBox` class for axis-aligned bounding volumes, `BVHNode` clas
 
 For motion blur, I store the previous frames and draw the current frames on top of them. However, this feature isn't fully completed. For it to work properly, I need to clear out the previous frames after a certain amount of time, and also only start saving previous frames when there are camera changes. 
 
-![Alt text](img/motion_blur1.png)
-![Alt text](img/motion_blur2.png)
-![Alt text](img/motion_blur3.png)
+![Alt text](img/motion_blur_1.png)
+![Alt text](img/motion_blur_2.png)
+![Alt text](img/motion_blur_3.png)
 
 ### Bloopers
 
