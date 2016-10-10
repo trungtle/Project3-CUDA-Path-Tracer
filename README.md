@@ -153,9 +153,9 @@ Even with BVH enabled, the scene however is still taking too long. For the Mario
 
 |       |With BVH | Without BVH |
 |-----|------|----|
-|Average|320.757 ms/bounc|284.9704822 ms/bounce|
+|Average|320.757 ms/bounce|284.9704822 ms/bounce|
 
-My implementation for `traverseBVH` still uses too many branching for each state logic. That means every warps still have to execute all the cases when there is a large divergence when traversing through each branch. This in fact isn't quite an efficient of BVH stack-less traversal. There are some common logic that could be shared between each logic state that can greatly reduce the branch divergence. Additionally, my `BVHNodeDev` currently still stores quite a few extra information that could be packed more efficiently to save memory for each thread.
+My implementation for `traverseBVH` still uses too many branching for each state logic. That means each warp still hasto execute all the branching cases when there is a large divergence when traversing through each BVH node. This in fact isn't quite an efficient implementation for BVH stack-less traversal. There are some common logic that could be shared between each logic state that can greatly reduce the branch divergence. Additionally, my `BVHNodeDev` currently still stores quite a few extra information that could be packed more efficiently to save memory for each thread.
 
 This feature uses `BBox` class for axis-aligned bounding volumes, `BVHNode` class for BVH construction on CPU, and `BVHNodeDev` class for BVH iterative traversal on GPU using CUDA.
 
