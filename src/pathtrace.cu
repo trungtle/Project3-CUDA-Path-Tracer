@@ -198,6 +198,7 @@ __global__ void traverseBVH(
 	, PathSegment * pathSegments
 	, int num_bvhNodes
 	, BVHNodeDev* bvhNodes
+	, int rootIdx
 	, int geoms_size
 	, Geom * geoms
 	, ShadeableIntersection * intersections
@@ -217,7 +218,7 @@ __global__ void traverseBVH(
 		glm::vec3 tmp_normal;
 		Geom* hit_geom = nullptr;
 
-		BVHNodeDev current = bvhNodes[0];
+		BVHNodeDev current = bvhNodes[rootIdx];
 		EBVHTransition transition = EBVHTransition::FromParent;
 
 		bool isIterating = true;
@@ -229,12 +230,12 @@ __global__ void traverseBVH(
 
 				// 1. From child
 				// In the fromChild case the current node was already tested when going
-				// down, and does not have to be re - tested.The next node to traverse
+				// down, and does not have to bce re - tested.The next node to traverse
 				// is either current’s sibling f arChild(if current is nearChild),
 				// or its parent(if current was farChild).
 				//
 			case EBVHTransition::FromChild:
-				if (current.idx == 0) {
+				if (current.idx == rootIdx) {
 					// Current has reached root
 					isIterating = false;
 				}
@@ -284,7 +285,7 @@ __global__ void traverseBVH(
 					if (!hit) {
 						// Missed, go back up to parent
 
-						if (current.idx == 0) {
+						if (current.idx == rootIdx) {
 							// Current has reached root
 							isIterating = false;
 						} else {
@@ -320,7 +321,7 @@ __global__ void traverseBVH(
 						hit_geom = &(geoms[current.geomIdx]);
 					}
 
-					if (current.idx == 0) {
+					if (current.idx == rootIdx) {
 						// Current has reached root
 						isIterating = false;
 					} else {
@@ -334,7 +335,7 @@ __global__ void traverseBVH(
 					bool hit = bboxIntersectionTest(current.bboxGeom, pathSegments[path_index].ray);
 					if (!hit) {
 						// Missed, go to far sibling
-						if (current.idx == 0) {
+						if (current.idx == rootIdx) {
 							// Current has reached root
 							isIterating = false;
 						} else {
@@ -579,6 +580,7 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 				, dev_paths
 				, hst_scene->bvhNodes.size()
 				, dev_bvhNodes
+				, hst_scene->root->nodeIdx
 				, hst_scene->geoms.size()
 				, dev_geoms
 				, dev_intersections

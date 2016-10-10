@@ -46,19 +46,19 @@ In this project, I implemented on top of the provided CUDA started code a fully 
 
 Diffuse shading is computed by bouncing the next path segment from a diffuse surface with a cosine-weighted random ray direction. The color of the bounced ray is multiplied with the original color using Lambert's law according to the [rendering equation](https://en.wikipedia.org/wiki/Rendering_equation).
 
-[insert photo here]
+![Alt text](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/img/cornell_box.png)
 
 ### Specular reflection
 
 Similarly, specular reflection bounces the next path segment using `glm::reflect` with the surface's normal.
 
-[insert photo here]
+![Alt text](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/img/cornell_box_specular.png)
 
 ### Refraction
 
 For refraction, the next path segment's direction is computed using `glm::refract` with a given index of refraction.
 
-[insert photos here]
+![Alt text](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/img/cornell_box_refraction.png)
 
 From left to right:
 - __[IOR - 2.5]__ Mixed 50% yellow specular reflective and 50% refractive diamond
@@ -83,7 +83,10 @@ For ray/triangle intersection, I used the [fast, minimum storage ray/triangle in
 
 I also tried to use `glm::intersectRayTriangle` but encountered a CUDA kernel launch error. 
 
-[insert photos here]
+![Alt text](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/img/torus_colored.png)
+![Alt text](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/img/wahoo_green.png)
+
+Here you can see Mario is semi-submerged in a water refractive material (look for the outlining) against a green background. [Source obj file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/obj/wahoo.obj).
 
 ## Hierarchical spatial datastructures
 
@@ -107,9 +110,17 @@ With the parent's pointers, now we can iterate through the BVH structure using s
 
 At each state, it can be determined where to transition for the next iteration. If it is an interior node, a ray/box intersection is performed to decide whether to continue in this subtree. If it is a leaf node, a ray/primitive intersection is peformed instead and return the point of intersection and its surface's normal. 
 
-[insert photo of torus]
+Torus scene - [scene file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/one_light.txt), [obj file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/obj/catmark_torus_creases0.obj) - with BVH enabled:
+![Alt text](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/img/torus.PNG)
+![Alt text](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/img/torus_bvh.PNG)
 
-[insert photo of cornell]
+Cornell box scene - [scene file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/cornell.txt) - with BVH enabled:
+![Alt text](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/img/cornell_box_diffuse.png)
+![Alt text](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/img/cornell_box_bvh.PNG)
+![Alt text](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/img/bvh.gif)
+
+Torus in a cornel box scene - [scene file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/torus.txt), [obj file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/obj/catmark_torus_creases0.obj) - with BVH enabled:
+![Alt text](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/img/torus_cornell_bvh.PNG)
 
 For comparison, the following chart displays the effect of having BVH for a large mesh (wahoo.obj). The BVH-enabled scene outperforms by __~10ms__ per interation.
 
@@ -122,14 +133,18 @@ This feature uses `BBox` class for axis-aligned bounding volumes, `BVHNode` clas
 
 For motion blur, I store the previous frames and draw the current frames on top of them. However, this feature isn't fully completed. For it to work properly, I need to clear out the previous frames after a certain amount of time, and also only start saving previous frames when there are camera changes. 
 
-[insert photos here]
+![Alt text](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/img/motion_blur1.png)
+![Alt text](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/img/motion_blur2.png)
+![Alt text](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/img/motion_blur3.png)
 
 ### Bloopers
 
 ![Computer problems](http://imgs.xkcd.com/comics/computer_problems.png)
 [https://xkcd.com/722/](https://xkcd.com/722/)
 
-[insert photos here]
+![Alt text](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/img/blooper0.png)
+![Alt text](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/img/blooper1.png)
+![Alt text](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/img/blooper2.png)
 
 # Credit
 
@@ -138,6 +153,12 @@ For motion blur, I store the previous frames and draw the current frames on top 
 - [tinyobjloader](https://github.com/syoyo/tinyobjloader) by [syoyo](https://github.com/syoyo)
 - [shader compilation code](http://www.opengl-tutorial.org/beginners-tutorials/tutorial-2-the-first-triangle/) from [opengl-tutorial](http://www.opengl-tutorial.org/)
 - [glm](http://glm.g-truc.net/0.9.8/index.html) by [Christophe Riccio](https://github.com/Groovounet)
+
+### Obj files
+
+- [wahoo.obj](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/obj/wahoo.obj) and [dodecahedron.obj](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/obj/dodecahedron.obj) are test scene files taken from [CIS460, Fall 2016](http://www.cis.upenn.edu/~cis460/16fa/hw/hw03/rasterizer3d.html).
+- The rest of the .obj files are from [tinyobjloader](https://github.com/syoyo/tinyobjloader).
+
 # Note
 
 ### Camera control

@@ -36,9 +36,10 @@ Scene::Scene(string filename) {
     }
 
 	isBVHEnabled = true;
+	isBVHVisualizationEnabled = false;
 	isVisualizationEnabled = true;
 
-	//loadSceneFromObj("E:/CODES/Penn/CIS565/Project3-CUDA-Path-Tracer/scenes/obj/catmark_torus_creases0.obj", "", true);
+	loadSceneFromObj("E:/CODES/Penn/CIS565/Project3-CUDA-Path-Tracer/scenes/obj/wahoo.obj", "", true);
 }
 
 Scene::~Scene() {
@@ -215,16 +216,22 @@ int Scene::initBVH() {
 	std::vector<BVHNode*> leaves;
 	leaves.reserve(geoms.size());
 
+	size_t nodeCount = 0;
 	for (int i = 0; i < geoms.size(); ++i) {
 		BVHNode* leafNode = new BVHNode();
 		populateLeafBVHNode(leafNode, i, geoms.at(i));
+		leafNode->nodeIdx = nodeCount;
 		leaves.push_back(leafNode);
+		++nodeCount;
 	}
 
+	cout << "Building BVH Tree" << endl;
 	// Construct the rest of BVHTree recursively
-	root = buildBVHTreeRecursive(leaves, 0, leaves.size() - 1);
+	root = buildBVHTreeRecursive(leaves, 0, leaves.size() - 1, nodeCount);
 
-	flattenBHVTree(this->bvhNodes, root);
+	cout << "Flattening BVH Tree" << endl;
+	flattenBHVTree(this->bvhNodes, root, nodeCount);
+	cout << "BVH initialization complete" << endl;
 	return 1;
 }
 

@@ -7,6 +7,7 @@ void populateLeafBVHNode(
 	const Geom& geom
 	)
 {
+	node->nodeIdx = -1;
 	node->geomIdx = geomIdx;
 	node->bbox = BBox::BBoxFromGeom(geom);
 	BBox::createBBoxGeom(node->bbox, node->bboxGeom);
@@ -22,7 +23,7 @@ bool isLeafBVHNode(const BVHNode* node)
 	return node->nearChild == nullptr && node->farChild == nullptr;
 }
 
-BVHNode* buildBVHTreeRecursive(std::vector<BVHNode*>& leaves, int first, int last) {
+BVHNode* buildBVHTreeRecursive(std::vector<BVHNode*>& leaves, int first, int last, size_t& nodeCount) {
 	if (last < first || last < 0 || first < 0) {
 		return nullptr;
 	}
@@ -33,6 +34,8 @@ BVHNode* buildBVHTreeRecursive(std::vector<BVHNode*>& leaves, int first, int las
 	}
 
 	auto node = new BVHNode();
+	node->nodeIdx = nodeCount;
+	++nodeCount;
 
 	// Choose a dimension to split
 	auto dim = static_cast<int>((BBoxMaximumExtent(node->bbox)));
@@ -50,12 +53,12 @@ BVHNode* buildBVHTreeRecursive(std::vector<BVHNode*>& leaves, int first, int las
 	std::nth_element(&leaves[first], &leaves[mid], &leaves[last], CompareCentroid(dim));
 	
 	// Build near child
-	node->nearChild = buildBVHTreeRecursive(leaves, first, mid);
+	node->nearChild = buildBVHTreeRecursive(leaves, first, mid, nodeCount);
 	node->nearChild->parent = node;
 	node->nearChild->splitAxis = static_cast<BBox::EAxis>(dim);
 
 	// Build far child
-	node->farChild = buildBVHTreeRecursive(leaves, mid + 1, last);
+	node->farChild = buildBVHTreeRecursive(leaves, mid + 1, last, nodeCount);
 	node->farChild->parent = node;
 	node->farChild->splitAxis = static_cast<BBox::EAxis>(dim);
 	return node;
@@ -78,12 +81,16 @@ void destroyBVHTreeRecursive(BVHNode* node) {
 
 void flattenBHVTreeRecursive(
 	std::vector<BVHNodeDev>& bvhNodes,
-	BVHNode* node,
+	const BVHNode* node,
 	int idx,
 	int parentIdx) 
 {
 	if (node == nullptr) {
 		return;
+	}
+
+	if (idx >= bvhNodes.size()) {
+		printf("idx is wrong %d\n", idx);
 	}
 
 	BVHNodeDev bvhNodeDev;
@@ -93,33 +100,34 @@ void flattenBHVTreeRecursive(
 	bvhNodeDev.bboxGeom = node->bboxGeom;
 	bvhNodeDev.bbox = node->bbox;
 	bvhNodeDev.idx = idx;
-	bvhNodeDev.nearChildIdx = idx * 2 + 1;
-	bvhNodeDev.farChildIdx = idx * 2 + 2;
+	if (node->nearChild) {
+		bvhNodeDev.nearChildIdx = node->nearChild->nodeIdx;
+	} else {
+		bvhNodeDev.nearChildIdx = -1;
+	}
+	if (node->farChild) {
+		bvhNodeDev.farChildIdx = node->farChild->nodeIdx;
+	} else {
+		bvhNodeDev.farChildIdx = -1;
+	}
 	bvhNodeDev.parentIdx = parentIdx;
-	bvhNodes.push_back(bvhNodeDev);
+	assert(idx < bvhNodes.size());
+	bvhNodes[idx] = bvhNodeDev;
 
 	// Update pointers
-	parentIdx = idx;
-	flattenBHVTreeRecursive(bvhNodes, node->nearChild, getNearChildIdx(idx), parentIdx);
-	flattenBHVTreeRecursive(bvhNodes, node->farChild, getFarChildIdx(idx), parentIdx);
+	if (node->nearChild) {
+		flattenBHVTreeRecursive(bvhNodes, node->nearChild, node->nearChild->nodeIdx, node->nodeIdx);
+	}
+
+	if (node->farChild) {
+		flattenBHVTreeRecursive(bvhNodes, node->farChild, node->farChild->nodeIdx, node->nodeIdx);
+	}
 }
 
-void flattenBHVTree(std::vector<BVHNodeDev>& bvhNodes, BVHNode* root) {
+void flattenBHVTree(std::vector<BVHNodeDev>& bvhNodes, const BVHNode* root, const size_t nodeCount) {
 	
-	BVHNode* current = root;
-	int idx = 0;
+	bvhNodes.resize(nodeCount);
 	int parentIdx = -1;
-	flattenBHVTreeRecursive(bvhNodes, root, idx, parentIdx);
+	flattenBHVTreeRecursive(bvhNodes, root, root->nodeIdx, parentIdx);
 }
-
-__host__ __device__
-int getNearChildIdx(int idx) {
-	return idx * 2 + 1;
-}
-
-__host__ __device__
-int getFarChildIdx(int idx) {
-	return idx * 2 + 2;
-}
-
 

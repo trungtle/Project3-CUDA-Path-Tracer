@@ -206,7 +206,7 @@ void mainLoop(Scene* scene) {
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
 		}
 		
-		if (scene->isBVHEnabled) {
+		if (scene->isBVHVisualizationEnabled) {
 			// Draw BVH on top
 			drawBVHRescursive(scene->state.camera, scene->root);
 		}

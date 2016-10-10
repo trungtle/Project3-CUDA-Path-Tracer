@@ -28,6 +28,7 @@ public:
 	int initBVH();
 
 	bool isBVHEnabled;
+	bool isBVHVisualizationEnabled;
 	bool isVisualizationEnabled;
 
 	BVHNode* root;

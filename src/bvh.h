@@ -8,6 +8,7 @@ typedef enum {
 } EBVHTransition;
 
 struct BVHNode {
+	int nodeIdx;
 	int geomIdx; 
 	Geom bboxGeom; // bbox geom for bounding box
 	BBoxVAO bboxVao; // vao details for bounding box
@@ -48,8 +49,8 @@ struct CompareCentroid {
 	}
 };
 
-void flattenBHVTree(std::vector<BVHNodeDev>& bvhNodes, BVHNode* root);
-BVHNode* buildBVHTreeRecursive(std::vector<BVHNode*>& leaves, int first, int last);
+void flattenBHVTree(std::vector<BVHNodeDev>& bvhNodes, const BVHNode* root, const size_t nodeCount);
+BVHNode* buildBVHTreeRecursive(std::vector<BVHNode*>& leaves, int first, int last, size_t& nodeCount);
 void destroyBVHTreeRecursive(BVHNode* node);
 
 /**
