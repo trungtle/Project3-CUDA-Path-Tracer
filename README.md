@@ -96,7 +96,10 @@ For this stack-less traversal to work, the BVH needs to be constructed with the 
 
 1. Binary BVH tree with exactly two children (also called siblings) `nearChild` and `farChild`. All primitives are stored at leaf nodes.
 2. Each node has a pointer to parent.
-3. Each inner node has a unique traversal for a given ray from near child to far child. This order can be different for each ray but has to be the same order for the same ray. [insert photo here]
+3. Each inner node has a unique traversal for a given ray from near child to far child. This order can be different for each ray but has to be the same order for the same ray. 
+
+![Alt text](img/bvh_siblings.png)
+
 4. Internal nodes only stores a bounding box.
 
 I constructed the BVH tree in 2 steps: built the tree recursively with `BVHNode*`, then flattened the structure into a `BVHNodeDev` data array to feed into a kernel launch for parallel processing. This was done to make debugging easier.
@@ -106,7 +109,7 @@ With the parent's pointers, now we can iterate through the BVH structure using s
 2. From its sibling (from nearChild to farChild)
 3. From its children (out from farChild)
 
-[insert photo here]
+![Alt text](img/bvh_traversal.png)
 
 At each state, it can be determined where to transition for the next iteration. If it is an interior node, a ray/box intersection is performed to decide whether to continue in this subtree. If it is a leaf node, a ray/primitive intersection is peformed instead and return the point of intersection and its surface's normal. 
 
