@@ -86,6 +86,9 @@ For ray/triangle intersection, I used the [fast, minimum storage ray/triangle in
 I also tried to use `glm::intersectRayTriangle` but encountered a CUDA kernel launch error. 
 
 ![Alt text](img/torus_colored.png)
+
+In this scene, a torus mesh is rendered inside a Cornell box.
+
 ![Alt text](img/wahoo_green.png)
 
 Here you can see Mario is semi-submerged in a water refractive material (look at the outlining of the Mario mesh where the water intersects with him) against a green background. [Source obj file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/obj/wahoo.obj).
