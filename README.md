@@ -79,13 +79,13 @@ __800x800 scene with 8 bounces__
 
 |With stream compaction| Without stream compaction|
 |---|---|
-|11.66862588|16.9580651|
+|11.668 ms/bounce|16.958 ms/bounce|
 
 __1600x900 scene with 8 bounces__
 
 |With stream compaction| Without stream compaction|
 |---|---|
-|15.56504463|36.99880862|
+|15.565 ms/bounce|36.998 ms/bounce|
 
 I also did a quick comparison between `glm::remove_if` and `glm::partition`, and on average the `glm::remove_if` takes ~1.206ms/bounce while `glm::partion` takes ~1.759ms/bounce.
 
@@ -113,7 +113,7 @@ For this stack-less traversal to work, the BVH needs to be constructed with the 
 
 1. Binary BVH tree with exactly two children (also called siblings) `nearChild` and `farChild`. All primitives are stored at leaf nodes.
 2. Each node has a pointer to parent.
-3. Each inner node has a unique traversal for a given ray from near child to far child. This order can be different for each ray but has to be the same order for the same ray. 
+3. Each inner node has a unique traversal for a given ray from near child to far child. This order can be different for each ray but has to be the same order for the same ray. The subtree are sorted along the maximum extent axis of its children nodes.
 
 ![Alt text](img/bvh_siblings.png)
 
@@ -153,7 +153,7 @@ Even with BVH enabled, the scene however is still taking too long. For the Mario
 
 |       |With BVH | Without BVH |
 |-----|------|----|
-|Average|320.757ms|284.9704822ms|
+|Average|320.757 ms/bounc|284.9704822 ms/bounce|
 
 My implementation for `traverseBVH` still uses too many branching for each state logic. That means every warps still have to execute all the cases when there is a large divergence when traversing through each branch. This in fact isn't quite an efficient of BVH stack-less traversal. There are some common logic that could be shared between each logic state that can greatly reduce the branch divergence. Additionally, my `BVHNodeDev` currently still stores quite a few extra information that could be packed more efficiently to save memory for each thread.
 
