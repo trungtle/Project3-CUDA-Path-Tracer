@@ -111,15 +111,18 @@ With the parent's pointers, now we can iterate through the BVH structure using s
 At each state, it can be determined where to transition for the next iteration. If it is an interior node, a ray/box intersection is performed to decide whether to continue in this subtree. If it is a leaf node, a ray/primitive intersection is peformed instead and return the point of intersection and its surface's normal. 
 
 Torus scene - [scene file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/one_light.txt), [obj file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/obj/catmark_torus_creases0.obj) - with BVH enabled:
-![Alt text](img/torus.PNG)
+
+![Alt text](img/torus.png)
 ![Alt text](img/torus_bvh.PNG)
 
 Cornell box scene - [scene file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/cornell.txt) - with BVH enabled:
+
 ![Alt text](img/cornell_box_diffuse.png)
 ![Alt text](img/cornell_box_bvh.PNG)
 ![Alt text](img/bvh.gif)
 
 Torus in a cornel box scene - [scene file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/torus.txt), [obj file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/obj/catmark_torus_creases0.obj) - with BVH enabled:
+
 ![Alt text](img/torus_cornell_bvh.PNG)
 
 For comparison, the following chart displays the effect of having BVH for a large mesh (wahoo.obj). The BVH-enabled scene outperforms by __~10ms__ per interation.
@@ -140,6 +143,7 @@ For motion blur, I store the previous frames and draw the current frames on top 
 ### Bloopers
 
 ![Computer problems](http://imgs.xkcd.com/comics/computer_problems.png)
+
 [https://xkcd.com/722/](https://xkcd.com/722/)
 
 ![Alt text](img/blooper0.png)
