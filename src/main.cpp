@@ -3,6 +3,7 @@
 #include <cstring>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/random.hpp>
+#include <chrono>
 
 static std::string startTimeString;
 
@@ -39,7 +40,7 @@ int main(int argc, char** argv) {
         printf("Usage: %s SCENEFILE.txt\n", argv[0]);
         return 1;
     }
-
+	
     const char *sceneFile = argv[1];
 
     // Load scene file
@@ -63,7 +64,7 @@ int main(int argc, char** argv) {
 	init();
 
 	// Initialize the BVH structure
-	if (scene->isBVHEnabled) {
+	if (scene->BVH_ENABLED) {
 		scene->initBVH();
 	}
 
@@ -119,20 +120,6 @@ void runCuda() {
         pathtraceInit(scene);
     }
 
-	//bool toggle = true;
-	//for (Geom& geo : scene->geoms) {
-	//	if (geo.type == GeomType::SPHERE) {
-	//		toggle = !toggle;
-	//		geo.transform = utilityCore::buildTransformationMatrix(
-	//			geo.translation + glm::vec3(false ? glm::sin(iteration * 10.0) * 1.5 : 0.0f, toggle ? 0.0f : glm::sin(iteration * 10.0) * 2.0, toggle ? 0.f : glm::sin(iteration * 10.0) * 3.5),
-	//			glm::vec3(glm::rotate((float)iteration * 10, glm::vec3(1.0, 1.0f, 0)) * glm::vec4(geo.rotation, 1.0f)),
-	//			geo.scale);
-	//		geo.inverseTransform = glm::inverse(geo.transform);
-	//		geo.invTranspose = glm::inverseTranspose(geo.transform);
-	//	}
-	//}
-	//updateGeom(scene);
-
 	if (iteration < renderState->iterations) {
         uchar4 *pbo_dptr = NULL;
         iteration++;
@@ -140,7 +127,10 @@ void runCuda() {
 
         // execute the kernel
         int frame = 0;
+		auto begin = std::chrono::high_resolution_clock::now();
         pathtrace(pbo_dptr, frame, iteration);
+		auto end = std::chrono::high_resolution_clock::now();
+		scene->timeElapsedMsPerIteration = std::chrono::duration_cast<std::chrono::nanoseconds>((end - begin)).count() / 1000000.0f;
 
         // unmap buffer object
         cudaGLUnmapBufferObject(pbo);
@@ -150,6 +140,7 @@ void runCuda() {
         cudaDeviceReset();
         exit(EXIT_SUCCESS);
     }
+
 }
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {

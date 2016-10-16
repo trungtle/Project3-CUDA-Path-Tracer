@@ -190,11 +190,11 @@ void mainLoop(Scene* scene) {
         glfwPollEvents();
         runCuda();
 
-        string title = "CIS565 Path Tracer | " + utilityCore::convertIntToString(iteration) + " Iterations";
+        string title = "CIS565 Path Tracer | " + utilityCore::convertIntToString(iteration) + " Iterations [" + utilityCore::convertIntToString(scene->timeElapsedMsPerIteration) + " ms]";
         glfwSetWindowTitle(window, title.c_str());
 
 		glClear(GL_COLOR_BUFFER_BIT);
-		if (scene->isVisualizationEnabled) {
+		if (scene->VISUALIZE_ENABLED) {
 			glUseProgram(passthroughProgram);
 			glActiveTexture(GL_TEXTURE0);
 
@@ -206,7 +206,7 @@ void mainLoop(Scene* scene) {
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
 		}
 		
-		if (scene->isBVHVisualizationEnabled) {
+		if (scene->BVH_VISUALIZE_ENABLED) {
 			// Draw BVH on top
 			drawBVHRescursive(scene->state.camera, scene->root);
 		}

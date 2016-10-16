@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AnalysisReport Version="1.0">
+  <ProcessId>27244</ProcessId>
+  <ReportCreationTime>2016-10-14T21:17:50.0101198-04:00</ReportCreationTime>
+  <ReportDirectory>c:\temp\cis565_path_tracer161014_001\cis565_path_tracer161014_001_Capture_000</ReportDirectory>
+  <ReportFile>c:\temp\cis565_path_tracer161014_001\cis565_path_tracer161014_001_Capture_000\cis565_path_tracer161014_001_Capture_000.nvreport</ReportFile>
+  <CaptureStartQpcTimestamp>809222748451</CaptureStartQpcTimestamp>
+  <CaptureStartNveTimestamp>828655535464302</CaptureStartNveTimestamp>
+  <CaptureStartNveFrequency>3592000000</CaptureStartNveFrequency>
+  <CaptureEndQpcTimestamp>809434229600</CaptureEndQpcTimestamp>
+  <CaptureEndNveTimestamp>828872092165344</CaptureEndNveTimestamp>
+  <CaptureStartRdtscTimestamp>828655535464389</CaptureStartRdtscTimestamp>
+  <CaptureEndRdtscTimestamp>828872092165677</CaptureEndRdtscTimestamp>
+  <CaptureStartFileTimeTimestamp>131209678701328208</CaptureStartFileTimeTimestamp>
+  <CaptureEndFileTimeTimestamp>131209679304265169</CaptureEndFileTimeTimestamp>
+</AnalysisReport>

@@ -18,15 +18,6 @@ REFR        0
 REFRIOR     0
 EMITTANCE   0
 
-// Refractive water
-MATERIAL 9
-RGB         1 1 1
-SPECEX      0
-SPECRGB     0 0 0 
-REFL        0
-REFR        1
-REFRIOR     1.5
-EMITTANCE   0
 
 // Diffuse red
 MATERIAL 2
@@ -62,8 +53,8 @@ EMITTANCE   0
 MATERIAL 5
 RGB         .98 .98 .98
 SPECEX      0
-SPECRGB     .98 .98 .98
-REFL        0
+SPECRGB     .98 .98 0
+REFL        0.5
 REFR        1
 REFRIOR     2.5
 EMITTANCE   0
@@ -80,51 +71,32 @@ EMITTANCE   0
 
 // Specular green
 MATERIAL 7
-RGB         .98 .98 .98
+RGB         .35 .85 .35
 SPECEX      0
-SPECRGB     .35 .85 .35
-REFL        0.1
+SPECRGB     .98 .98 0
+REFL        0.5
 REFR        1
 REFRIOR     1.62
 EMITTANCE   0
 
 // Specular red
 MATERIAL 8
-RGB         .98 .98 .98
+RGB         .85 .35 .35
 SPECEX      0
-SPECRGB     .85 .35 .35
-REFL        0.1
+SPECRGB     .98 .98 0
+REFL        0.5
 REFR        1
 REFRIOR     1.62
 EMITTANCE   0
 
-// Diffuse yellow
-MATERIAL 9
-RGB         .85 .85 .35
-SPECEX      0
-SPECRGB     0 0 0
-REFL        0
-REFR        0
-REFRIOR     0
-EMITTANCE   0
-
-// Refractive water
-MATERIAL 10
-RGB         1 1 1
-SPECEX      0
-SPECRGB     0 0 0 
-REFL        0
-REFR        1
-REFRIOR     1.5
-EMITTANCE   0
 
 // Camera
 CAMERA
-RES         1600 900
+RES         800 800
 FOVY        45
 ITERATIONS  5000
 DEPTH       8
-FILE        wahoo
+FILE        test
 SPP 		1
 EYE         0 10 15
 LOOKAT      0 10 0
@@ -133,24 +105,33 @@ UP          0 1 0
 
 // Ceiling light
 OBJECT 0
-sphere
+cube
 material 0
-TRANS       0 10 30
-ROTAT       0 0 0
-SCALE       20 20 .3
+TRANS       0 30 0
+ROTAT       50 0 0
+SCALE       30 .3 30
 
 // Cube
 OBJECT 1
 cube
-material 3
-TRANS       0 10 -2
+material 6
+TRANS       0 10 0
 ROTAT       0 0 0
-SCALE       100 40 1
+SCALE       30 30 1
 
-// Cube
+
+// Sphere
 OBJECT 2
-cube
-material 10
-TRANS       0 10 -1
+sphere
+material 7
+TRANS       5 10 0
 ROTAT       0 0 0
-SCALE       100 40 1
+SCALE       5 5 5
+
+// Sphere
+OBJECT 3
+sphere
+material 8
+TRANS       5 10 0
+ROTAT       0 0 0
+SCALE       5 5 5

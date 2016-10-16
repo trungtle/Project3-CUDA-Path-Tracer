@@ -8,7 +8,12 @@
 
 #include "shaderProgram.h"
 
-Scene::Scene(string filename) {
+Scene::Scene(string filename) :
+	STREAM_COMPACTION_ENABLED(true)
+	, BVH_ENABLED(false)
+	, BVH_VISUALIZE_ENABLED(false)
+	, VISUALIZE_ENABLED(true)
+{
     cout << "Reading scene from " << filename << " ..." << endl;
     cout << " " << endl;
     char* fname = (char*)filename.c_str();
@@ -35,11 +40,7 @@ Scene::Scene(string filename) {
         }
     }
 
-	isBVHEnabled = true;
-	isBVHVisualizationEnabled = false;
-	isVisualizationEnabled = true;
-
-	loadSceneFromObj("E:/CODES/Penn/CIS565/Project3-CUDA-Path-Tracer/scenes/obj/wahoo.obj", "", true);
+	loadSceneFromObj("E:/CODES/Penn/CIS565/Project3-CUDA-Path-Tracer/scenes/obj/catmark_torus_creases0.obj", "", true);
 }
 
 Scene::~Scene() {

@@ -27,13 +27,15 @@ public:
     ~Scene();
 	int initBVH();
 
-	bool isBVHEnabled;
-	bool isBVHVisualizationEnabled;
-	bool isVisualizationEnabled;
+	bool STREAM_COMPACTION_ENABLED;
+	bool BVH_ENABLED;
+	bool BVH_VISUALIZE_ENABLED;
+	bool VISUALIZE_ENABLED;
 
 	BVHNode* root;
 	std::vector<BVHNodeDev> bvhNodes;
     std::vector<Geom> geoms;
     std::vector<Material> materials;
     RenderState state;
+	float timeElapsedMsPerIteration;
 };
