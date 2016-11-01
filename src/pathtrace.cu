@@ -538,7 +538,7 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
             (cam.resolution.y + blockSize2d.y - 1) / blockSize2d.y);
 
 	// 1D block for path tracing
-	const int blockSize1d = 128;
+	const int blockSize1d = 8;
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -594,7 +594,7 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 		// tracing
  		dim3 numblocksPathSegmentTracing = (num_paths + blockSize1d - 1) / blockSize1d;
 		
-		cudaEventRecord(start);
+		//cudaEventRecord(start);
 		if (hst_scene->BVH_ENABLED) {
  			traverseBVH << <numblocksPathSegmentTracing, blockSize1d >> > (
 				depth
@@ -619,7 +619,7 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 		}
 		checkCUDAError("trace one bounce");
 		cudaDeviceSynchronize();
-		cudaEventRecord(stop);
+		//cudaEventRecord(stop);
 		depth++;
 
 
@@ -643,7 +643,7 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 			// If using stream compaction, we have to use partial gather
 			dim3 numBlocksPixels = (num_paths + blockSize1d - 1) / blockSize1d;
 			partialGather << <numBlocksPixels, blockSize1d >> >(cam, num_paths, dev_image, dev_paths);
-
+#define USE_THRUST
 #ifdef USE_THRUST
 			PathSegment* new_dev_paths_end = thrust::remove_if(thrust::device, dev_paths, dev_paths + num_paths, shouldTerminatePath());
 			num_paths = new_dev_paths_end - dev_paths;
@@ -653,10 +653,10 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 #endif
 		}
 
-		cudaEventSynchronize(stop);
-		float ms;
-		cudaEventElapsedTime(&ms, start, stop);
-		cout << ms << endl;
+		//cudaEventSynchronize(stop);
+		//float ms;
+		//cudaEventElapsedTime(&ms, start, stop);
+		//cout << ms << endl;
 
 		iterationComplete = num_paths == 0 || depth > traceDepth;
 	}

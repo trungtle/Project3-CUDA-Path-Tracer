@@ -10,7 +10,7 @@
 
 Scene::Scene(string filename) :
 	STREAM_COMPACTION_ENABLED(true)
-	, BVH_ENABLED(false)
+	, BVH_ENABLED(true)
 	, BVH_VISUALIZE_ENABLED(false)
 	, VISUALIZE_ENABLED(true)
 {
@@ -40,7 +40,7 @@ Scene::Scene(string filename) :
         }
     }
 
-	loadSceneFromObj("E:/CODES/Penn/CIS565/Project3-CUDA-Path-Tracer/scenes/obj/catmark_torus_creases0.obj", "", true);
+	loadSceneFromObj("E:/CODES/Penn/CIS565/Project3-CUDA-Path-Tracer/scenes/obj/Octocat.obj", "", true);
 }
 
 Scene::~Scene() {
@@ -80,23 +80,26 @@ int Scene::loadGeom(string objectid) {
 
         //load transformations
         utilityCore::safeGetline(fp_in, line);
+		glm::vec3 translation;
+		glm::vec3 rotation;
+		glm::vec3 scale;
         while (!line.empty() && fp_in.good()) {
             vector<string> tokens = utilityCore::tokenizeString(line);
 
             //load tranformations
             if (strcmp(tokens[0].c_str(), "TRANS") == 0) {
-                newGeom.translation = glm::vec3(atof(tokens[1].c_str()), atof(tokens[2].c_str()), atof(tokens[3].c_str()));
+                translation = glm::vec3(atof(tokens[1].c_str()), atof(tokens[2].c_str()), atof(tokens[3].c_str()));
             } else if (strcmp(tokens[0].c_str(), "ROTAT") == 0) {
-                newGeom.rotation = glm::vec3(atof(tokens[1].c_str()), atof(tokens[2].c_str()), atof(tokens[3].c_str()));
+                rotation = glm::vec3(atof(tokens[1].c_str()), atof(tokens[2].c_str()), atof(tokens[3].c_str()));
             } else if (strcmp(tokens[0].c_str(), "SCALE") == 0) {
-                newGeom.scale = glm::vec3(atof(tokens[1].c_str()), atof(tokens[2].c_str()), atof(tokens[3].c_str()));
+                scale = glm::vec3(atof(tokens[1].c_str()), atof(tokens[2].c_str()), atof(tokens[3].c_str()));
             }
 
             utilityCore::safeGetline(fp_in, line);
         }
 
         newGeom.transform = utilityCore::buildTransformationMatrix(
-                newGeom.translation, newGeom.rotation, newGeom.scale);
+                translation, rotation, scale);
         newGeom.inverseTransform = glm::inverse(newGeom.transform);
         newGeom.invTranspose = glm::inverseTranspose(newGeom.transform);
 
@@ -456,9 +459,6 @@ int Scene::loadSceneFromObj(
 
 			Geom newTriangle;
 			newTriangle.type = TRIANGLE;
-			newTriangle.translation = glm::vec3();
-			newTriangle.rotation = glm::vec3();
-			newTriangle.scale = glm::vec3();
 			newTriangle.transform = glm::mat4(1.f);
 			newTriangle.inverseTransform = glm::inverse(newTriangle.transform);
 			newTriangle.invTranspose = glm::inverseTranspose(newTriangle.transform);

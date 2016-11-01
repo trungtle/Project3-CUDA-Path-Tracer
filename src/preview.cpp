@@ -173,16 +173,16 @@ bool init() {
     return true;
 }
 
-void drawBVHRescursive(const Camera& camera, BVHNode* node) {
+void drawBVHRescursive(const Camera& camera, BVHNode* node, int depth) {
 	
 	// Draw bbox
 	shaderProgram->DrawBBox(camera, node->bboxGeom, node->bboxVao);
-	if (isLeafBVHNode(node)) {
+	if (isLeafBVHNode(node) || depth >= 10) {
 		return;
 	}
 
-	drawBVHRescursive(camera, node->nearChild);
-	drawBVHRescursive(camera, node->farChild);
+	drawBVHRescursive(camera, node->nearChild, depth + 1);
+	drawBVHRescursive(camera, node->farChild, depth + 1);
 }
 
 void mainLoop(Scene* scene) {
@@ -208,7 +208,7 @@ void mainLoop(Scene* scene) {
 		
 		if (scene->BVH_VISUALIZE_ENABLED) {
 			// Draw BVH on top
-			drawBVHRescursive(scene->state.camera, scene->root);
+			drawBVHRescursive(scene->state.camera, scene->root, 0);
 		}
 
 
