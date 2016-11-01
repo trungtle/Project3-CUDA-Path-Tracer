@@ -6,32 +6,7 @@ CUDA Path Tracer
 * Trung Le
 * Windows 10 Home, i7-4790 CPU @ 3.60GHz 12GB, GTX 980 Ti (Person desktop)
 
-### Stream compaction
-
-**---- General information for CUDA device ----**
-- Device name: GeForce GTX 980 Ti
-- Compute capability: 5.2
-- Compute mode: Default
-- Clock rate: 1076000
-- Integrated: 0
-- Device copy overlap: Enabled
-- Kernel execution timeout: Enabled
- 
-**---- Memory information for CUDA device ----**
-
-- Total global memory: 6442450944
-- Total constant memory: 65536
-- Multiprocessor count: 22
-- Shared memory per multiprocessor: 98304
-- Registers per multiprocessor: 65536
-- Max threads per multiprocessor: 2048
-- Max grid dimensions: [2147483647, 65535, 65535]
-- Max threads per block: 1024
-- Max registers per block: 65536
-- Max thread dimensions: [1024, 1024, 64]
-- Threads per block: 512
-
-# Description
+# Stream compaction
 
 In this project, I implemented on top of the provided CUDA started code a fully functional pathtracer with the following features:
 
@@ -103,7 +78,7 @@ In this scene, a torus mesh is rendered inside a Cornell box.
 
 ![Alt text](img/wahoo_green.png)
 
-Here you can see Mario is semi-submerged in a water refractive material (look at the outlining of the Mario mesh where the water intersects with him) against a green background. [Source obj file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/obj/wahoo.obj).
+[Source obj file](https://github.com/trungtle/Project3-CUDA-Path-Tracer/tree/master/scenes/obj/wahoo.obj).
 
 ## Hierarchical spatial datastructures
 
@@ -158,6 +133,31 @@ Even with BVH enabled, the scene however is still taking too long. For the Mario
 My implementation for `traverseBVH` still uses too many branching for each state logic. That means each warp still hasto execute all the branching cases when there is a large divergence when traversing through each BVH node. This in fact isn't quite an efficient implementation for BVH stack-less traversal. There are some common logic that could be shared between each logic state that can greatly reduce the branch divergence. Additionally, my `BVHNodeDev` currently still stores quite a few extra information that could be packed more efficiently to save memory for each thread.
 
 This feature uses `BBox` class for axis-aligned bounding volumes, `BVHNode` class for BVH construction on CPU, and `BVHNodeDev` class for BVH iterative traversal on GPU using CUDA.
+
+# Device spec
+
+### General information for CUDA device
+- Device name: GeForce GTX 980 Ti
+- Compute capability: 5.2
+- Compute mode: Default
+- Clock rate: 1076000
+- Integrated: 0
+- Device copy overlap: Enabled
+- Kernel execution timeout: Enabled
+ 
+### Memory information for CUDA device 
+
+- Total global memory: 6442450944
+- Total constant memory: 65536
+- Multiprocessor count: 22
+- Shared memory per multiprocessor: 98304
+- Registers per multiprocessor: 65536
+- Max threads per multiprocessor: 2048
+- Max grid dimensions: [2147483647, 65535, 65535]
+- Max threads per block: 1024
+- Max registers per block: 65536
+- Max thread dimensions: [1024, 1024, 64]
+- Threads per block: 512
 
 # Bonus
 ### Motion blur (incomplete)
