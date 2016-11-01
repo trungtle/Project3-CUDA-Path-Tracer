@@ -79,14 +79,11 @@ namespace BBox {
 	void createBBoxGeom(const BBox& bbox, Geom& bboxGeom) {
 		bboxGeom.type = CUBE;
 		bboxGeom.materialid = 0; // Don't care here
-		//bboxGeom.translation = glm::vec3(0.f);
-		//bboxGeom.rotation = glm::vec3(0.f);
-		//bboxGeom.scale = glm::vec3(1.f);
-		bboxGeom.translation = bbox.centroid;
-		bboxGeom.rotation = glm::vec3();
-		bboxGeom.scale = bbox.max - bbox.min;
+		glm::vec3 translation = bbox.centroid;
+		glm::vec3 rotation = glm::vec3(0.f);
+		glm::vec3 scale = bbox.max - bbox.min;
 		bboxGeom.transform = utilityCore::buildTransformationMatrix(
-			bboxGeom.translation, bboxGeom.rotation, bboxGeom.scale);
+		translation, rotation, scale);
 		bboxGeom.inverseTransform = glm::inverse(bboxGeom.transform);
 		bboxGeom.invTranspose = glm::inverseTranspose(bboxGeom.transform);
 	}

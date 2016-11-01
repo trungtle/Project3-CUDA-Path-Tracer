@@ -120,11 +120,11 @@ EMITTANCE   0
 
 // Camera
 CAMERA
-RES         1600 900
+RES         800 800
 FOVY        45
 ITERATIONS  5000
 DEPTH       8
-FILE        test
+FILE        wahoo
 SPP 		1
 EYE         0 10 15
 LOOKAT      0 10 0
@@ -145,12 +145,5 @@ cube
 material 3
 TRANS       0 10 -2
 ROTAT       0 0 0
-SCALE       30 30 1
+SCALE       100 40 1
 
-// Cube
-OBJECT 2
-cube
-material 10
-TRANS       0 10 -1
-ROTAT       0 0 0
-SCALE       30 30 1

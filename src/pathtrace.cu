@@ -14,6 +14,7 @@
 #include "pathtrace.h"
 #include "intersections.h"
 #include "interactions.h"
+#include "stream_compaction/efficient.h"
 
 #define ERRORCHECK 1
 
@@ -222,8 +223,7 @@ __global__ void traverseBVH(
 		EBVHTransition transition = EBVHTransition::FromParent;
 
 		bool isIterating = true;
-		while (isIterating && depth < 10) {
-
+		while (isIterating) {
 			// States (reproduced here from Stack-less BVH Traversal paper [Hapala1 el at. 2011])
 			// Link: https://graphics.cg.uni-saarland.de/fileadmin/cguds/papers/2011/hapala_sccg2011/hapala_sccg2011.pdf
 			switch (transition) {
@@ -475,6 +475,25 @@ __global__ void shadeMaterial(
 	}
 }
 
+__global__ void partialGather(
+	const Camera cam
+	, int nPaths
+	, glm::vec3* image
+	, PathSegment* iterationPaths
+	)
+{
+	int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+
+	if (index < nPaths)
+	{
+		PathSegment iterationPath = iterationPaths[index];
+		if (iterationPath.remainingBounces == 0) {
+			image[iterationPath.pixelIndex] += iterationPath.color;
+		}
+	}
+}
+
+
 // Add the current iteration's output to the overall image
 __global__ void finalGather(
 	const Camera cam
@@ -499,7 +518,7 @@ struct shouldTerminatePath
 	__host__ __device__
 	bool operator()(const PathSegment& p)
 	{
-		return p.remainingBounces > 0;
+		return p.remainingBounces == 0;
 	};
 };
 
@@ -519,7 +538,7 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
             (cam.resolution.y + blockSize2d.y - 1) / blockSize2d.y);
 
 	// 1D block for path tracing
-	const int blockSize1d = 128;
+	const int blockSize1d = 8;
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -536,12 +555,12 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
     //     Currently, intersection distance is recorded as a parametric distance,
     //     t, or a "distance along the ray." t = -1.0 indicates no intersection.
     //     * Color is attenuated (multiplied) by reflections off of any object
-    //   * TODO: Stream compact away all of the terminated paths.
+    //   * Stream compact away all of the terminated paths.
     //     You may use either your implementation or `thrust::remove_if` or its
     //     cousins.
     //     * Note that you can't really use a 2D kernel launch any more - switch
     //       to 1D.
-    //   * TODO: Shade the rays that intersected something or didn't bottom out.
+    //   * Shade the rays that intersected something or didn't bottom out.
     //     That is, color the ray by performing a color computation according
     //     to the shader, then generate a new ray to continue the ray path.
     //     We recommend just updating the ray's PathSegment in place.
@@ -550,7 +569,7 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
     // * Finally, add this iteration's results to the image. This has been done
     //   for you.
 
-    // TODO: perform one iteration of path tracing
+    // Perform one iteration of path tracing
 
 	generateRayFromCamera <<<blocksPerGrid2d, blockSize2d >>>(cam, iter, traceDepth, dev_paths);
 	checkCUDAError("generate camera ray");
@@ -562,7 +581,9 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 	// --- PathSegment Tracing Stage ---
 	// Shoot ray into scene, bounce between objects, push shading chunks
 
-	//thrust::sort()
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
 
 	bool iterationComplete = false;
 	while (!iterationComplete) {
@@ -571,10 +592,11 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 		cudaMemset(dev_intersections, 0, pixelcount * sizeof(ShadeableIntersection));
 
 		// tracing
-		dim3 numblocksPathSegmentTracing = (num_paths + blockSize1d - 1) / blockSize1d;
+ 		dim3 numblocksPathSegmentTracing = (num_paths + blockSize1d - 1) / blockSize1d;
 		
-		if (hst_scene->isBVHEnabled) {
-			traverseBVH << <numblocksPathSegmentTracing, blockSize1d >> > (
+		//cudaEventRecord(start);
+		if (hst_scene->BVH_ENABLED) {
+ 			traverseBVH << <numblocksPathSegmentTracing, blockSize1d >> > (
 				depth
 				, num_paths
 				, dev_paths
@@ -597,10 +619,10 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 		}
 		checkCUDAError("trace one bounce");
 		cudaDeviceSynchronize();
+		//cudaEventRecord(stop);
 		depth++;
 
 
-		// TODO:
 		// --- Shading Stage ---
 		// Shade path segments based on intersections and generate new rays by
 		// evaluating the BSDF.
@@ -617,17 +639,36 @@ void pathtrace(uchar4 *pbo, int frame, int iter) {
 			dev_materials
 		);
 
-		PathSegment* new_dev_path_end = thrust::partition(thrust::device, dev_paths, dev_paths + num_paths, shouldTerminatePath());
-		num_paths = new_dev_path_end - dev_paths;
+		if (hst_scene->STREAM_COMPACTION_ENABLED) {
+			// If using stream compaction, we have to use partial gather
+			dim3 numBlocksPixels = (num_paths + blockSize1d - 1) / blockSize1d;
+			partialGather << <numBlocksPixels, blockSize1d >> >(cam, num_paths, dev_image, dev_paths);
+#define USE_THRUST
+#ifdef USE_THRUST
+			PathSegment* new_dev_paths_end = thrust::remove_if(thrust::device, dev_paths, dev_paths + num_paths, shouldTerminatePath());
+			num_paths = new_dev_paths_end - dev_paths;
+#else
+			num_paths = StreamCompaction::OptimizedEfficient::compact(num_paths, dev_paths, dev_paths);
 
-		iterationComplete = num_paths == 0 || depth > traceDepth; // TODO: should be based off stream compaction results.
+#endif
+		}
+
+		//cudaEventSynchronize(stop);
+		//float ms;
+		//cudaEventElapsedTime(&ms, start, stop);
+		//cout << ms << endl;
+
+		iterationComplete = num_paths == 0 || depth > traceDepth;
 	}
 
-	num_paths = dev_path_end - dev_paths;
+	if (!hst_scene->STREAM_COMPACTION_ENABLED) {
+		// If not using stream compaction, apply final gather
+		// Assemble this iteration and apply it to the image
+		num_paths = dev_path_end - dev_paths;
+		dim3 numBlocksPixels = (pixelcount + blockSize1d - 1) / blockSize1d;
+		finalGather << <numBlocksPixels, blockSize1d >> >(cam, num_paths, dev_image, dev_paths);
 
-	// Assemble this iteration and apply it to the image
-	dim3 numBlocksPixels = (pixelcount + blockSize1d - 1) / blockSize1d;
-	finalGather << <numBlocksPixels, blockSize1d >> >(cam, num_paths, dev_image, dev_paths);
+	}
 
 
 	///////////////////////////////////////////////////////////////////////////

@@ -109,8 +109,6 @@ void scatterRay(
 		} 
 
 		float eta = ei / et;
-		float w = glm::acos(glm::dot(pathSegment.ray.direction, normal));
-		float criticalAngle = glm::asin(eta);
 		scatteredRayDirection = glm::refract(pathSegment.ray.direction, normal, eta);
 	} else {
 		// Diffuse case

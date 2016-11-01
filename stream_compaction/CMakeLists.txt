@@ -1,4 +1,7 @@
 set(SOURCE_FILES
+    "profilingcommon.h"
+    "efficient.h"
+    "efficient.cu"
     )
 
 cuda_add_library(stream_compaction
